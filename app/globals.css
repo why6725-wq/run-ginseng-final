@@ -1,0 +1,78 @@
+@import 'tailwindcss';
+
+/*
+  한지와 먹을 떠올리게 하는 차분한 색으로 잡았다.
+  오행 색은 전통 배색(목=청, 화=적, 토=황, 금=백, 수=흑)을 따르되
+  화면에서 읽히도록 명도를 조정했다.
+*/
+:root {
+  --background: #faf8f4;
+  --surface: #ffffff;
+  --surface-muted: #f3efe7;
+  --foreground: #1f1c17;
+  --muted: #6b6357;
+  --border: #e0d8c9;
+  --accent: #7a4a2b;
+  --accent-soft: #f0e4d8;
+
+  --el-wood: #2f7d5d;
+  --el-fire: #b8443c;
+  --el-earth: #9a7430;
+  --el-metal: #5c6b7a;
+  --el-water: #3a4a6b;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #16140f;
+    --surface: #1f1c17;
+    --surface-muted: #262219;
+    --foreground: #ece6da;
+    --muted: #a09684;
+    --border: #3a342a;
+    --accent: #d9a66c;
+    --accent-soft: #33291d;
+
+    --el-wood: #6cc79b;
+    --el-fire: #e8837a;
+    --el-earth: #d4ae62;
+    --el-metal: #a3b4c6;
+    --el-water: #8aa3d4;
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+
+  --color-wood: var(--el-wood);
+  --color-fire: var(--el-fire);
+  --color-earth: var(--el-earth);
+  --color-metal: var(--el-metal);
+  --color-water: var(--el-water);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family:
+    'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Noto Sans KR',
+    'Malgun Gothic', system-ui, sans-serif;
+}
+
+/* 한자는 본문보다 살짝 키워야 균형이 맞는다 */
+.hanja {
+  font-family: 'Apple SD Gothic Neo', 'Noto Serif KR', 'Batang', serif;
+}
+
+/* 용어에 밑줄을 긋고 마우스를 올리면 설명이 뜨게 한다 */
+.term {
+  border-bottom: 1px dotted currentColor;
+  cursor: help;
+}
