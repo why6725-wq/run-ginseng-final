@@ -11,6 +11,7 @@
 import type { EarthlyBranch, FiveElement, HeavenlyStem, TenGod } from 'manseryeok'
 import type { SajuChart } from './saju'
 import { josa, josaAfterParen } from './korean'
+import { findSpirits, voidBranchesOf, type PillarSpirits } from './spirits'
 
 /* ------------------------------------------------------------------ */
 /* 오행 상생·상극                                                       */
@@ -718,6 +719,10 @@ export interface Analysis {
   relations: Relation[]
   strength: Strength
   yongsin: Yongsin
+  /** 기둥별 12운성, 12신살, 신살 */
+  spirits: PillarSpirits[]
+  /** 연주 기준 공망. 일주 기준은 chart.voidBranches 에 있다 */
+  yearVoidBranches: EarthlyBranch[]
 }
 
 export function analyze(chart: SajuChart): Analysis {
@@ -734,6 +739,11 @@ export function analyze(chart: SajuChart): Analysis {
     relations: findRelations(chart),
     strength,
     yongsin: pickYongsin(chart, strength),
+    spirits: findSpirits(chart),
+    yearVoidBranches: (() => {
+      const y = chart.pillars.find((p) => p.label === '연')!
+      return voidBranchesOf(y.stem, y.branch)
+    })(),
   }
 }
 

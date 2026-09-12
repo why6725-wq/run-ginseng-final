@@ -8,6 +8,7 @@ import { LuckTable } from '@/components/LuckTable'
 import { Interpretation } from '@/components/Interpretation'
 import { StrengthPanel } from '@/components/StrengthPanel'
 import { RelationList } from '@/components/RelationList'
+import { SpiritList } from '@/components/SpiritList'
 import { Term } from '@/components/Term'
 import type { SajuChart } from '@/lib/saju'
 import type { Analysis } from '@/lib/analysis'
@@ -220,6 +221,20 @@ export default function Home() {
                 여기서 드러납니다.
               </p>
               <RelationList analysis={analysis} />
+            </section>
+          )}
+
+          {/* 12운성·12신살·신살 */}
+          {analysis && (
+            <section className="rounded-2xl border border-border bg-surface p-4 shadow-sm sm:p-6">
+              <h2 className="mb-1 text-lg font-semibold">
+                <Term name="12운성">12운성</Term>과 <Term name="신살">신살</Term>
+              </h2>
+              <p className="mb-4 text-xs text-muted">
+                앞의 신강신약과 용신이 뼈대라면 여기는 살입니다. 참고로 보는 항목이라 앞의
+                결론을 뒤집지는 않습니다.
+              </p>
+              <SpiritList chart={chart} analysis={analysis} />
             </section>
           )}
 

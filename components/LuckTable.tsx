@@ -78,6 +78,37 @@ export function LuckTable({ chart }: { chart: SajuChart }) {
           </span>
         </div>
       </div>
+
+      {/* 월운 */}
+      <div>
+        <div className="mb-2 text-xs text-muted">
+          <Term name="월운">{chart.yearlyLuck.year}년 월운</Term>
+        </div>
+        <div className="overflow-x-auto">
+          <div className="flex min-w-max gap-1 pb-1">
+            {chart.monthlyLuck.map((m) => (
+              <div
+                key={m.month}
+                className={`w-[3.6rem] shrink-0 rounded-lg border p-1.5 text-center ${
+                  m.isCurrent ? 'border-accent bg-accent-soft' : 'border-border'
+                }`}
+              >
+                <div className="text-[11px] text-muted">{m.month}월</div>
+                <div className="hanja my-0.5 text-base font-semibold">{m.hanja}</div>
+                <div className="text-[10px] leading-tight text-muted">
+                  {m.stemTenGod}
+                  <br />
+                  {m.branchTenGod}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <p className="mt-1.5 text-xs text-muted">
+          달이 바뀌는 기준도 1일이 아니라 <Term name="절기">절기</Term>입니다. 각 달을
+          대표하는 간지를 보여드립니다.
+        </p>
+      </div>
     </div>
   )
 }

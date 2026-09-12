@@ -156,6 +156,15 @@ export interface SajuChart {
     stemTenGod: TenGod | '일간'
     branchTenGod: TenGod
   }
+  /** 올해 열두 달의 월운 */
+  monthlyLuck: {
+    month: number
+    korean: string
+    hanja: string
+    stemTenGod: TenGod | '일간'
+    branchTenGod: TenGod
+    isCurrent: boolean
+  }[]
   /** 만 나이 */
   age: number
   /** 입춘 기준으로 사주 연도가 달력 연도와 다른 경우의 안내 */
@@ -311,6 +320,29 @@ export function buildChart(input: SajuInput, now: Date = new Date()): SajuChart 
     branchTenGod: getBranchTenGod(dayStem, yearly.year.earthlyBranch),
   }
 
+  // 월운 — 올해 각 달의 월주.
+  // 월주는 절기(입춘, 경칩 등)에 바뀌고 절입은 대개 4일에서 8일 사이라,
+  // 각 달 15일로 계산하면 그 달을 대표하는 월주가 안전하게 잡힌다.
+  const currentMonth = now.getMonth() + 1
+  const monthlyLuck = Array.from({ length: 12 }, (_, i) => {
+    const m = i + 1
+    const md = calculateFourPillars({
+      year: thisYear,
+      month: m,
+      day: 15,
+      hour: 12,
+      minute: 0,
+    })
+    return {
+      month: m,
+      korean: `${md.month.heavenlyStem}${md.month.earthlyBranch}`,
+      hanja: `${stemHanja(md.month.heavenlyStem)}${branchHanja(md.month.earthlyBranch)}`,
+      stemTenGod: getTenGod(dayStem, md.month.heavenlyStem) as TenGod | '일간',
+      branchTenGod: getBranchTenGod(dayStem, md.month.earthlyBranch),
+      isCurrent: m === currentMonth,
+    }
+  })
+
   // 안내 문구
   const notes: string[] = []
   const sajuYearIndex = HEAVENLY_STEMS.indexOf(detail.year.heavenlyStem)
@@ -361,6 +393,7 @@ export function buildChart(input: SajuInput, now: Date = new Date()): SajuChart 
     luckStartAge: info?.startAge ?? 0,
     currentLuck,
     yearlyLuck,
+    monthlyLuck,
     age,
     notes,
   }

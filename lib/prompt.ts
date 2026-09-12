@@ -44,6 +44,11 @@ export const SYSTEM_PROMPT = `당신은 한국 전통 명리학(사주팔자)에
 3-2. 합충 관계가 주어졌다면 반드시 반영하십시오. 특히 삼합이나 방합이 있으면 글자 수만
    세었을 때와 실제 기운의 세기가 달라집니다. 충이나 형이 있으면 그 자리가 뜻하는
    영역에 변동이 있다는 뜻으로 읽어 주십시오.
+3-3. 12운성, 12신살, 신살은 참고 항목입니다. 살을 붙이는 재료로만 쓰고, 신강신약과 용신이라는
+   뼈대를 뒤집는 근거로 삼지 마십시오. 신살은 유파마다 기준이 달라 절대적인 판정이
+   아니라는 점을 밝히고, "살이 있으니 나쁘다" 같은 겁주는 말투를 절대 쓰지 마십시오.
+   흉살은 조심할 성질로, 길성은 살릴 만한 강점으로 풀어 주십시오.
+   신살은 항목마다 하나둘만 골라 쓰고, 목록을 그대로 나열하지 마십시오.
 4. 단정적인 예언을 하지 마십시오. "~합니다" 대신 "~한 경향이 있습니다", "~하기 쉽습니다"처럼
    기질과 흐름을 말하는 어조를 쓰십시오.
 5. 건강은 생활 습관 조언까지만 합니다. 진단이나 치료를 말하지 마십시오.
@@ -175,7 +180,30 @@ export function chartToText(chart: SajuChart): string {
   lines.push('')
 
   lines.push('## 공망')
-  lines.push(`- ${chart.voidBranches.join(', ')}`)
+  lines.push(`- 일주 기준: ${chart.voidBranches.join(', ')}`)
+  lines.push(`- 연주 기준: ${analysis.yearVoidBranches.join(', ')}`)
+  lines.push('')
+
+  lines.push('## 12운성과 12신살 (참고 항목. 뼈대를 뒤집지 마십시오)')
+  lines.push('- 12운성은 일간이 각 자리에서 갖는 기운의 세기, 12신살은 연지 기준 각 자리의 성질입니다.')
+  for (const s of analysis.spirits) {
+    lines.push(`- ${s.labelFull}: 12운성 ${s.stage} (${s.stageNote}) / 12신살 ${s.spirit} (${s.spiritNote})`)
+  }
+  lines.push('')
+
+  lines.push('## 신살과 길성 (참고 항목)')
+  const withHits = analysis.spirits.filter((s) => s.hits.length > 0)
+  if (withHits.length === 0) {
+    lines.push('- 해당하는 신살이 없습니다.')
+  } else {
+    for (const s of withHits) {
+      for (const h of s.hits) {
+        lines.push(
+          `- ${s.labelFull} ${h.name} (${h.kind === 'lucky' ? '길성' : '흉살'}, ${h.basis}): ${h.note}`,
+        )
+      }
+    }
+  }
   lines.push('')
 
   lines.push('## 대운 (10년 단위 큰 흐름)')
@@ -196,6 +224,15 @@ export function chartToText(chart: SajuChart): string {
     `- ${chart.yearlyLuck.year}년: ${chart.yearlyLuck.korean}(${chart.yearlyLuck.hanja})` +
       ` 천간 십신 ${chart.yearlyLuck.stemTenGod}, 지지 십신 ${chart.yearlyLuck.branchTenGod}`,
   )
+  lines.push('')
+
+  lines.push(`## 월운 (${chart.yearlyLuck.year}년 각 달)`)
+  for (const m of chart.monthlyLuck) {
+    lines.push(
+      `- ${m.month}월: ${m.korean}(${m.hanja}) 천간 십신 ${m.stemTenGod}, 지지 십신 ${m.branchTenGod}` +
+        (m.isCurrent ? '  <== 이번 달' : ''),
+    )
+  }
 
   return lines.join('\n')
 }

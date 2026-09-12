@@ -22,8 +22,9 @@ const CACHE_DIR = path.join(process.cwd(), '.cache', 'interpretations')
  * 캐시에서 그대로 나와 바뀐 게 없어 보인다. 고칠 때마다 올려야 한다.
  *
  * v2: 신강신약·용신·지장간·합충을 해석에 반영하기 시작함
+ * v3: 12운성·12신살·신살·연주 공망·월운을 추가함
  */
-const PROMPT_VERSION = 2
+const PROMPT_VERSION = 3
 
 /** 입력이 같으면 같은 키가 나오도록 한다. 해석이 달라지는 요소만 넣는다. */
 export function cacheKey(input: SajuInput, year: number): string {
