@@ -47,6 +47,37 @@ export function cacheKey(input: SajuInput, year: number): string {
   return createHash('sha256').update(material).digest('hex').slice(0, 32)
 }
 
+/**
+ * 궁합 캐시 키.
+ *
+ * 두 사람의 순서가 바뀌어도 같은 궁합이므로 키를 정렬해 같게 만든다.
+ * 그래야 A-B 로 본 뒤 B-A 로 봐도 다시 묻지 않는다.
+ */
+export function compatCacheKey(
+  a: SajuInput,
+  b: SajuInput,
+  relation: string | null,
+  year: number,
+): string {
+  const one = (i: SajuInput) =>
+    JSON.stringify({
+      y: i.year,
+      m: i.month,
+      d: i.day,
+      h: i.hour,
+      mi: i.minute,
+      cal: i.calendar,
+      leap: i.isLeapMonth,
+      g: i.gender,
+      lon: i.longitude,
+      tst: i.applyTrueSolarTime,
+      db: i.dayBoundary,
+    })
+  const pair = [one(a), one(b)].sort()
+  const material = JSON.stringify({ v: PROMPT_VERSION, kind: 'compat', pair, relation, year })
+  return createHash('sha256').update(material).digest('hex').slice(0, 32)
+}
+
 export async function readCache(key: string): Promise<string | null> {
   try {
     const text = await readFile(path.join(CACHE_DIR, `${key}.txt`), 'utf8')

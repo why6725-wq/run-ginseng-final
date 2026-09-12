@@ -60,11 +60,14 @@ export function BirthForm({
   onChange,
   onSubmit,
   busy,
+  hideSubmit,
 }: {
   value: FormState
   onChange: (f: FormState) => void
   onSubmit: () => void
   busy: boolean
+  /** 궁합처럼 폼이 둘일 때는 제출 버튼을 바깥에 하나만 둔다 */
+  hideSubmit?: boolean
 }) {
   const [advanced, setAdvanced] = useState(false)
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) =>
@@ -309,13 +312,15 @@ export function BirthForm({
         )}
       </div>
 
-      <button
-        type="submit"
-        disabled={!ready || busy}
-        className="w-full rounded-lg bg-accent px-4 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
-      >
-        {busy ? '풀이하는 중…' : '사주 풀이 보기'}
-      </button>
+      {!hideSubmit && (
+        <button
+          type="submit"
+          disabled={!ready || busy}
+          className="w-full rounded-lg bg-accent px-4 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          {busy ? '풀이하는 중…' : '사주 풀이 보기'}
+        </button>
+      )}
     </form>
   )
 }

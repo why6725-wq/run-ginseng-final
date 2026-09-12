@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useRef, useState } from 'react'
+import Link from 'next/link'
 import { BirthForm, INITIAL_FORM, toInput, type FormState } from '@/components/BirthForm'
 import { SajuTable } from '@/components/SajuTable'
 import { ElementBar } from '@/components/ElementBar'
@@ -109,6 +110,12 @@ export default function Home() {
           생년월일로 <Term name="일주">사주팔자</Term>를 계산하고, 그 결과를 AI가 풀어서
           설명해 드립니다.
         </p>
+        <Link
+          href="/compat"
+          className="mt-3 inline-block text-xs text-muted underline underline-offset-4 transition hover:text-accent"
+        >
+          두 사람 궁합 보러 가기
+        </Link>
       </header>
 
       <section className="rounded-2xl border border-border bg-surface p-4 shadow-sm sm:p-6">

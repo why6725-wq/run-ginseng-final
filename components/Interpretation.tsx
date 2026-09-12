@@ -94,16 +94,19 @@ export function Interpretation({
   text,
   streaming,
   fromCache,
+  sections: expected = SECTIONS,
 }: {
   text: string
   streaming: boolean
   fromCache: boolean
+  /** 기다리는 항목 목록. 궁합은 한 사람 풀이와 항목이 달라 갈아끼울 수 있게 했다 */
+  sections?: readonly { id: string; title: string }[]
 }) {
   const sections = useMemo(() => splitSections(text), [text])
 
   // 항목 전체를 미리 보여주면 얼마나 남았는지 알 수 있어 기다리기 편하다
   const doneTitles = new Set(sections.map((s) => s.title))
-  const pending = SECTIONS.filter((s) => !doneTitles.has(s.title))
+  const pending = expected.filter((s) => !doneTitles.has(s.title))
 
   const seen = new Set<string>()
 
