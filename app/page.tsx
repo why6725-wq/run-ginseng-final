@@ -6,8 +6,11 @@ import { SajuTable } from '@/components/SajuTable'
 import { ElementBar } from '@/components/ElementBar'
 import { LuckTable } from '@/components/LuckTable'
 import { Interpretation } from '@/components/Interpretation'
+import { StrengthPanel } from '@/components/StrengthPanel'
+import { RelationList } from '@/components/RelationList'
 import { Term } from '@/components/Term'
 import type { SajuChart } from '@/lib/saju'
+import type { Analysis } from '@/lib/analysis'
 
 interface AuthStatus {
   mode: string
@@ -18,6 +21,7 @@ interface AuthStatus {
 export default function Home() {
   const [form, setForm] = useState<FormState>(INITIAL_FORM)
   const [chart, setChart] = useState<SajuChart | null>(null)
+  const [analysis, setAnalysis] = useState<Analysis | null>(null)
   const [auth, setAuth] = useState<AuthStatus | null>(null)
   const [text, setText] = useState('')
   const [streaming, setStreaming] = useState(false)
@@ -92,6 +96,7 @@ export default function Home() {
     const input = toInput(form)
     setError(null)
     setChart(null)
+    setAnalysis(null)
     setText('')
 
     // 1단계: 사주 계산. AI 없이 즉시 끝난다.
@@ -104,6 +109,7 @@ export default function Home() {
       const data = await res.json()
       if (!data.ok) throw new Error(data.error)
       setChart(data.chart)
+      setAnalysis(data.analysis)
       setAuth(data.auth)
       setTimeout(() => resultRef.current?.scrollIntoView({ behavior: 'smooth' }), 50)
     } catch (e) {
@@ -189,6 +195,33 @@ export default function Home() {
             <h2 className="mb-4 text-lg font-semibold">오행 분포</h2>
             <ElementBar chart={chart} />
           </section>
+
+          {/* 신강신약과 용신 */}
+          {analysis && (
+            <section className="rounded-2xl border border-border bg-surface p-4 shadow-sm sm:p-6">
+              <h2 className="mb-1 text-lg font-semibold">
+                <Term name="신강">신강</Term>·<Term name="신약">신약</Term>과{' '}
+                <Term name="용신">용신</Term>
+              </h2>
+              <p className="mb-4 text-xs text-muted">
+                일간이 강한지 약한지를 정하고, 그에 따라 나에게 이로운 기운을 찾습니다. 아래
+                해석 전체가 여기서 출발합니다.
+              </p>
+              <StrengthPanel chart={chart} analysis={analysis} />
+            </section>
+          )}
+
+          {/* 글자 사이의 관계 */}
+          {analysis && (
+            <section className="rounded-2xl border border-border bg-surface p-4 shadow-sm sm:p-6">
+              <h2 className="mb-1 text-lg font-semibold">글자 사이의 관계</h2>
+              <p className="mb-4 text-xs text-muted">
+                글자끼리 끌어당기거나 부딪치는 관계입니다. 개수만 세어서는 안 보이는 힘이
+                여기서 드러납니다.
+              </p>
+              <RelationList analysis={analysis} />
+            </section>
+          )}
 
           {/* 대운·세운 */}
           <section className="rounded-2xl border border-border bg-surface p-4 shadow-sm sm:p-6">

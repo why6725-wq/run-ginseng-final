@@ -8,6 +8,8 @@
 
 import type { SajuChart } from './saju'
 import { tenGodHanja } from './saju'
+import { analyze, hiddenStemsLabel } from './analysis'
+import { josa } from './korean'
 import { termsForPrompt } from './terms'
 
 /** 해석 항목. 화면의 카드 순서와 같다. */
@@ -35,6 +37,13 @@ export const SYSTEM_PROMPT = `당신은 한국 전통 명리학(사주팔자)에
    예: "정관(正官), 나를 다스리는 규율의 기운입니다" 처럼 용어 뒤에 바로 설명을 붙입니다.
    같은 용어를 두 번째로 쓸 때는 설명을 반복하지 않습니다.
 3. 용어 정의는 아래 사전을 따릅니다. 사전과 다른 뜻으로 쓰지 마십시오.
+3-1. 해석의 뼈대는 신강신약과 용신입니다. 오행 개수만 세어 말하지 말고, 주어진 신강신약
+   판정과 용신을 기준으로 모든 항목을 일관되게 풀어 주십시오. 주어진 점수와 판정을
+   뒤집지 마십시오. 다만 신강신약은 유파마다 기준이 다르다는 점을 총평에서 한 번만
+   짚어 주십시오.
+3-2. 합충 관계가 주어졌다면 반드시 반영하십시오. 특히 삼합이나 방합이 있으면 글자 수만
+   세었을 때와 실제 기운의 세기가 달라집니다. 충이나 형이 있으면 그 자리가 뜻하는
+   영역에 변동이 있다는 뜻으로 읽어 주십시오.
 4. 단정적인 예언을 하지 마십시오. "~합니다" 대신 "~한 경향이 있습니다", "~하기 쉽습니다"처럼
    기질과 흐름을 말하는 어조를 쓰십시오.
 5. 건강은 생활 습관 조언까지만 합니다. 진단이나 치료를 말하지 마십시오.
@@ -89,6 +98,7 @@ export function chartToText(chart: SajuChart): string {
       `- ${p.labelFull}: ${p.korean} (${p.hanja})` +
         ` / 천간 ${p.stem}=${p.stemElement}·${p.stemYinYang}, 십신 ${p.stemTenGod}(${tenGodHanja(p.stemTenGod)})` +
         ` / 지지 ${p.branch}=${p.branchElement}·${p.branchYinYang}, 십신 ${p.branchTenGod}(${tenGodHanja(p.branchTenGod)})` +
+        ` / 지장간 ${hiddenStemsLabel(p.branch)}` +
         (p.isVoid ? ' / 공망' : ''),
     )
   }
@@ -115,6 +125,53 @@ export function chartToText(chart: SajuChart): string {
   lines.push('## 십신 분포 (일간 제외)')
   const sorted = Object.entries(chart.tenGodCounts).sort((a, b) => b[1] - a[1])
   for (const [g, n] of sorted) lines.push(`- ${g}: ${n}개`)
+  lines.push('')
+
+  const analysis = analyze(chart)
+
+  lines.push('## 신강신약 (해석의 뼈대. 여기서 출발하십시오)')
+  lines.push(`- 판정: ${analysis.strength.verdict} (${analysis.strength.score}점 / 100점 만점)`)
+  lines.push(`- 기준: 61점 이상 신강, 40점 미만 신약, 그 사이는 중화`)
+  lines.push(`- 득령(월지가 일간을 돕는가): ${analysis.strength.hasSeason ? '득령했다' : '득령하지 못했다'}`)
+  lines.push(`- 득지(일지가 일간을 돕는가): ${analysis.strength.hasGround ? '득지했다' : '득지하지 못했다'}`)
+  lines.push('- 자리별 근거:')
+  for (const r of analysis.strength.rows) {
+    lines.push(
+      `  - ${r.position} ${r.char}(${r.hanja}) ${r.element} ${r.tenGod} / ${r.weight}점 / ` +
+        `${r.helps ? '일간을 도움' : '일간의 힘을 덜어냄'} — ${r.reason}`,
+    )
+  }
+  lines.push('')
+
+  lines.push('## 용신 (억부 기준)')
+  lines.push(`- 이로운 오행: ${analysis.yongsin.favorable.join(', ')}`)
+  lines.push(
+    `- 부담이 되는 오행: ${analysis.yongsin.unfavorable.join(', ') || '뚜렷하지 않음'}`,
+  )
+  lines.push(`- 근거: ${analysis.yongsin.reason}`)
+  if (analysis.yongsin.missingFavorable.length > 0) {
+    lines.push(
+      `- 주의: 이로운 오행 가운데 ${josa(analysis.yongsin.missingFavorable.join(', '), '이/가')} 원국에 하나도 없습니다. ` +
+        `대운이나 세운에서 이 기운이 들어올 때가 중요한 전환점이 됩니다.`,
+    )
+  }
+  if (analysis.yongsin.seasonNote) {
+    lines.push(`- 조후 참고: ${analysis.yongsin.seasonNote}`)
+  }
+  lines.push('')
+
+  lines.push('## 글자 사이의 관계 (합충형파해)')
+  if (analysis.relations.length === 0) {
+    lines.push('- 뚜렷한 합이나 충이 없습니다. 글자들이 서로 간섭하지 않고 제 역할을 합니다.')
+  } else {
+    for (const r of analysis.relations) {
+      lines.push(
+        `- [${r.kind}] ${r.name}: ${r.positions.join(' + ')}` +
+          (r.produces ? ` → ${r.produces} 기운` : '') +
+          ` — ${r.note}`,
+      )
+    }
+  }
   lines.push('')
 
   lines.push('## 공망')

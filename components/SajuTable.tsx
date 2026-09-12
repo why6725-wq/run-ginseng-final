@@ -1,6 +1,7 @@
 'use client'
 
 import type { SajuChart } from '@/lib/saju'
+import { hiddenStemsLabel } from '@/lib/analysis'
 import { Term } from './Term'
 
 /** 오행별 색. globals.css 의 전통 배색과 짝을 이룬다. */
@@ -128,6 +129,16 @@ export function SajuTable({ chart }: { chart: SajuChart }) {
                 <Term name={p.branchTenGod} className="text-muted">
                   {p.branchTenGod}
                 </Term>
+              </td>
+            ))}
+            {chart.hourUnknown && <td className="p-1.5 text-xs text-muted">—</td>}
+          </Row>
+
+          {/* 지장간 — 지지 속에 숨은 천간 */}
+          <Row label="지장간" sub="숨은 글자" term="지장간" muted>
+            {columns.map((p) => (
+              <td key={p.label} className="p-1.5 text-xs tracking-tight text-muted">
+                {hiddenStemsLabel(p.branch)}
               </td>
             ))}
             {chart.hourUnknown && <td className="p-1.5 text-xs text-muted">—</td>}

@@ -6,6 +6,7 @@
  */
 
 import { buildChart, validateInput } from '@/lib/saju'
+import { analyze } from '@/lib/analysis'
 import { detectAuth } from '@/lib/ai'
 
 export async function POST(request: Request) {
@@ -13,7 +14,8 @@ export async function POST(request: Request) {
     const body = await request.json()
     const input = validateInput(body)
     const chart = buildChart(input)
-    return Response.json({ ok: true, chart, auth: detectAuth() })
+    const analysis = analyze(chart)
+    return Response.json({ ok: true, chart, analysis, auth: detectAuth() })
   } catch (error) {
     const message = error instanceof Error ? error.message : '사주 계산에 실패했습니다.'
     return Response.json({ ok: false, error: message }, { status: 400 })
