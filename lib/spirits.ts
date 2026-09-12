@@ -536,9 +536,30 @@ export function findSpirits(chart: SajuChart): PillarSpirits[] {
       stageNote: STAGE_NOTE[twelveStage(dayStem, p.branch)],
       spirit: fromYear,
       spiritNote: SPIRIT_NOTE[fromYear],
-      hits,
+      hits: mergeByName(hits),
     }
   })
+}
+
+/**
+ * 같은 이름의 신살을 하나로 합친다.
+ *
+ * 한 기둥에서 같은 신살이 두 갈래로 걸릴 수 있다.
+ * 예를 들어 갑오(甲午) 기둥은 천간 갑과 지지 오가 모두 현침 글자라
+ * 현침살이 두 번 잡힌다. 화면에 같은 이름이 나란히 뜨면 잘못된 것처럼 보이므로
+ * 하나로 합치되, 어느 글자에서 나왔는지는 근거에 모두 남긴다.
+ */
+function mergeByName(hits: SpiritHit[]): SpiritHit[] {
+  const out: SpiritHit[] = []
+  for (const h of hits) {
+    const found = out.find((m) => m.name === h.name)
+    if (found) {
+      if (!found.basis.includes(h.basis)) found.basis += `, ${h.basis}`
+    } else {
+      out.push({ ...h })
+    }
+  }
+  return out
 }
 
 /* ------------------------------------------------------------------ */
