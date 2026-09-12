@@ -9,9 +9,11 @@ import { Interpretation } from '@/components/Interpretation'
 import { StrengthPanel } from '@/components/StrengthPanel'
 import { RelationList } from '@/components/RelationList'
 import { SpiritList } from '@/components/SpiritList'
+import { FollowUp } from '@/components/FollowUp'
 import { Term } from '@/components/Term'
 import type { SajuChart } from '@/lib/saju'
 import type { Analysis } from '@/lib/analysis'
+import { readSse } from '@/lib/sse'
 
 interface AuthStatus {
   mode: string
@@ -23,6 +25,8 @@ export default function Home() {
   const [form, setForm] = useState<FormState>(INITIAL_FORM)
   const [chart, setChart] = useState<SajuChart | null>(null)
   const [analysis, setAnalysis] = useState<Analysis | null>(null)
+  const [suggestions, setSuggestions] = useState<string[]>([])
+  const [lastInput, setLastInput] = useState<ReturnType<typeof toInput> | null>(null)
   const [auth, setAuth] = useState<AuthStatus | null>(null)
   const [text, setText] = useState('')
   const [streaming, setStreaming] = useState(false)
@@ -50,40 +54,12 @@ export default function Home() {
         signal: controller.signal,
       })
 
-      if (!res.ok || !res.body) {
-        const detail = await res.json().catch(() => null)
-        throw new Error(detail?.error ?? '해석 요청에 실패했습니다.')
-      }
-
       // 서버가 밀어주는 조각을 읽어 화면에 이어 붙인다
-      const reader = res.body.getReader()
-      const decoder = new TextDecoder()
-      let buffer = ''
-
-      for (;;) {
-        const { done, value } = await reader.read()
-        if (done) break
-        buffer += decoder.decode(value, { stream: true })
-
-        // SSE 는 빈 줄로 메시지를 구분한다
-        const chunks = buffer.split('\n\n')
-        buffer = chunks.pop() ?? ''
-
-        for (const chunk of chunks) {
-          let event = 'message'
-          let data = ''
-          for (const line of chunk.split('\n')) {
-            if (line.startsWith('event: ')) event = line.slice(7).trim()
-            else if (line.startsWith('data: ')) data += line.slice(6)
-          }
-          if (!data) continue
-
-          const payload = JSON.parse(data)
-          if (event === 'delta') setText((t) => t + payload.text)
-          else if (event === 'cached') setFromCache(true)
-          else if (event === 'error') setError(payload.message)
-        }
-      }
+      await readSse(res, {
+        onDelta: (t) => setText((prev) => prev + t),
+        onCached: () => setFromCache(true),
+        onError: (m) => setError(m),
+      })
     } catch (e) {
       if ((e as Error).name !== 'AbortError') {
         setError(e instanceof Error ? e.message : '알 수 없는 오류가 발생했습니다.')
@@ -98,6 +74,7 @@ export default function Home() {
     setError(null)
     setChart(null)
     setAnalysis(null)
+    setSuggestions([])
     setText('')
 
     // 1단계: 사주 계산. AI 없이 즉시 끝난다.
@@ -111,6 +88,8 @@ export default function Home() {
       if (!data.ok) throw new Error(data.error)
       setChart(data.chart)
       setAnalysis(data.analysis)
+      setSuggestions(data.suggestions ?? [])
+      setLastInput(input)
       setAuth(data.auth)
       setTimeout(() => resultRef.current?.scrollIntoView({ behavior: 'smooth' }), 50)
     } catch (e) {
@@ -276,6 +255,21 @@ export default function Home() {
               )
             )}
           </section>
+
+          {/* 후속 질문 */}
+          {lastInput && text && !streaming && (
+            <section className="rounded-2xl border border-border bg-surface p-4 shadow-sm sm:p-6">
+              <h2 className="mb-1 text-lg font-semibold">더 물어보기</h2>
+              <p className="mb-4 text-xs text-muted">
+                위 풀이를 읽고 궁금한 점을 이어서 물어보실 수 있습니다.
+              </p>
+              <FollowUp
+                input={lastInput}
+                interpretation={text}
+                suggestions={suggestions}
+              />
+            </section>
+          )}
 
           <footer className="border-t border-border pt-5 text-center text-xs leading-relaxed text-muted">
             <p>

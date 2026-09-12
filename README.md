@@ -145,6 +145,7 @@ npm run test:watch  # 파일을 고칠 때마다 다시 돌리기
 | `tests/analysis.test.ts` | 지장간 표, 합충, 신강신약, 용신 |
 | `tests/spirits.test.ts` | 12운성, 12신살, 신살, 공망 |
 | `tests/prompt.test.ts` | 계산한 값이 AI 프롬프트에 빠짐없이 실리는지 |
+| `tests/followup.test.ts` | 후속 질문에 사주와 앞선 풀이가 실리는지 |
 | `tests/korean.test.ts` | 조사 처리 |
 
 값을 그냥 베껴 적은 것이 아니라, 계산 방법이 다른 두 갈래로 확인한 것만 넣었습니다.
@@ -162,6 +163,16 @@ npm run test:watch  # 파일을 고칠 때마다 다시 돌리기
 
 AI는 신강신약과 용신을 뼈대로 삼아 아홉 항목을 일관되게 풉니다. 오행 개수만 세어 말하지 않습니다.
 
+## 후속 질문
+
+풀이를 다 읽고 나면 이어서 물어볼 수 있습니다. 무엇을 물어야 할지 막막할 때를 위해 질문 보기도 함께 띄웁니다. 이 보기는 사주마다 다릅니다. 원국에 없는 용신이 있으면 그걸 어떻게 채우는지, 충이 있으면 그게 어떤 영향인지를 짚어 줍니다.
+
+계산된 사주와 방금 읽은 풀이 전문, 그리고 지난 문답을 함께 보내므로 앞서 한 말과 어긋나지 않습니다. 앞에서는 신강이라 해놓고 뒤에서 신약처럼 말하는 일을 막으려는 것입니다.
+
+사주로 알 수 없는 것(로또 번호, 시험 정답, 남의 속마음)을 물으면 그렇다고 솔직히 답하도록 지시해 두었습니다.
+
+후속 답변은 캐시하지 않습니다. 질문이 매번 달라 같은 답이 재사용될 일이 거의 없기 때문입니다.
+
 ## 폴더 구조
 
 ```
@@ -172,12 +183,15 @@ lib/
   terms.ts    명리 용어 사전. 화면과 AI 프롬프트가 함께 쓴다
   prompt.ts   AI에게 보낼 지시문 구성
   ai.ts       Claude 호출. 인증 방식을 바꾸려면 이 파일만 고치면 된다
+  followup.ts 후속 질문 프롬프트와 질문 보기
   cache.ts    같은 사주를 다시 묻지 않도록 결과 저장
   korean.ts   조사 처리 (토가/금이 같은 것)
+  sse.ts      서버가 흘려보내는 조각을 읽는 도우미 (브라우저 쪽)
 app/
   page.tsx              화면 전체
   api/saju/route.ts     사주 계산 API (AI 없이 즉시 응답)
   api/interpret/route.ts AI 해석 스트리밍 API
+  api/ask/route.ts      후속 질문 스트리밍 API
 components/
   BirthForm.tsx      생년월일 입력
   SajuTable.tsx      만세력 표
@@ -187,6 +201,7 @@ components/
   SpiritList.tsx     12운성, 12신살, 신살
   LuckTable.tsx      대운과 세운
   Interpretation.tsx AI 해석문 표시
+  FollowUp.tsx       후속 질문과 답변
   Term.tsx           용어 설명 툴팁
 tests/
   golden.test.ts     기준 사주 대조 (시중 앱과 맞춘 값)
@@ -194,6 +209,7 @@ tests/
   analysis.test.ts   지장간, 합충, 신강신약, 용신
   spirits.test.ts    12운성, 12신살, 신살, 공망
   prompt.test.ts     프롬프트에 값이 빠짐없이 실리는지
+  followup.test.ts   후속 질문 프롬프트와 질문 보기
   korean.test.ts     조사 처리
   fixtures.ts        테스트가 함께 쓰는 값
 scripts/
