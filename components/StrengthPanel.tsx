@@ -128,7 +128,7 @@ export function StrengthPanel({
                       </td>
                       <td className="py-1.5 pr-2 whitespace-nowrap text-muted">{r.role}</td>
                       <td
-                        className={`py-1.5 pr-2 text-right tabular-nums ${
+                        className={`py-1.5 pr-2 text-right tabular-nums whitespace-nowrap ${
                           r.helps ? 'font-medium text-accent' : 'text-muted'
                         }`}
                       >
