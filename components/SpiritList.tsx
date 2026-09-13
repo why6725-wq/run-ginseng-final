@@ -123,7 +123,7 @@ export function SpiritList({
       </div>
 
       {/* 공망 */}
-      <div className="rounded-lg bg-surface-muted/60 p-3">
+      <div className="rounded-lg bg-surface-2/60 p-3">
         <h3 className="mb-1.5 text-xs font-semibold">
           <Term name="공망">공망</Term>
         </h3>

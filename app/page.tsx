@@ -2,293 +2,224 @@
 
 import { useCallback, useRef, useState } from 'react'
 import Link from 'next/link'
-import { BirthForm, INITIAL_FORM, toInput, type FormState } from '@/components/BirthForm'
-import { SajuTable } from '@/components/SajuTable'
-import { ElementBar } from '@/components/ElementBar'
-import { LuckTable } from '@/components/LuckTable'
-import { Interpretation } from '@/components/Interpretation'
-import { StrengthPanel } from '@/components/StrengthPanel'
-import { RelationList } from '@/components/RelationList'
-import { SpiritList } from '@/components/SpiritList'
-import { FollowUp } from '@/components/FollowUp'
-import { Term } from '@/components/Term'
-import type { SajuChart } from '@/lib/saju'
-import type { Analysis } from '@/lib/analysis'
+import {
+  BirthForm,
+  INITIAL_FORM,
+  fromInput,
+  isReady,
+  toInput,
+  type FormState,
+} from '@/components/BirthForm'
+import { PersonaCard } from '@/components/PersonaCard'
+import { BriefCards } from '@/components/BriefCards'
+import { TodayCard } from '@/components/TodayCard'
+import { ShareCard } from '@/components/ShareCard'
+import { ProfilePicker, SaveProfileButton } from '@/components/ProfilePicker'
+import { DeepDive } from '@/components/DeepDive'
 import { readSse } from '@/lib/sse'
+import type { SajuChart, SajuInput } from '@/lib/saju'
+import type { Analysis } from '@/lib/analysis'
+import type { Persona } from '@/lib/persona'
+import type { TodayFortune } from '@/lib/today'
 
-interface AuthStatus {
-  mode: string
-  label: string
-  usesSubscription: boolean
+interface Result {
+  chart: SajuChart
+  analysis: Analysis
+  persona: Persona
+  input: SajuInput
+  name: string | null
 }
 
 export default function Home() {
   const [form, setForm] = useState<FormState>(INITIAL_FORM)
-  const [chart, setChart] = useState<SajuChart | null>(null)
-  const [analysis, setAnalysis] = useState<Analysis | null>(null)
-  const [suggestions, setSuggestions] = useState<string[]>([])
-  const [lastInput, setLastInput] = useState<ReturnType<typeof toInput> | null>(null)
-  const [auth, setAuth] = useState<AuthStatus | null>(null)
-  const [text, setText] = useState('')
+  const [pickedName, setPickedName] = useState<string | null>(null)
+
+  const [result, setResult] = useState<Result | null>(null)
+  const [brief, setBrief] = useState('')
   const [streaming, setStreaming] = useState(false)
-  const [fromCache, setFromCache] = useState(false)
+
+  const [today, setToday] = useState<{ fortune: TodayFortune; message: string } | null>(null)
+  const [todayLoading, setTodayLoading] = useState(false)
+
   const [error, setError] = useState<string | null>(null)
   const abortRef = useRef<AbortController | null>(null)
   const resultRef = useRef<HTMLDivElement>(null)
 
-  /** 해석만 다시 받는다. 표는 이미 있으므로 건드리지 않는다. */
-  const runInterpretation = useCallback(async (input: ReturnType<typeof toInput>) => {
-    abortRef.current?.abort()
-    const controller = new AbortController()
-    abortRef.current = controller
-
-    setText('')
-    setFromCache(false)
-    setStreaming(true)
+  /** 저장해 둔 사람을 눌렀을 때 */
+  const pickProfile = useCallback((input: SajuInput, name: string) => {
+    setForm(fromInput(input))
+    setPickedName(name)
+    setResult(null)
+    setBrief('')
+    setToday(null)
     setError(null)
+  }, [])
 
-    try {
-      const res = await fetch('/api/interpret', {
+  const run = useCallback(
+    async (input: SajuInput, name: string | null) => {
+      abortRef.current?.abort()
+      const controller = new AbortController()
+      abortRef.current = controller
+
+      setError(null)
+      setResult(null)
+      setBrief('')
+      setToday(null)
+      setStreaming(true)
+      setTodayLoading(true)
+
+      // 1단계: 계산. AI 없이 즉시 끝나므로 유형 카드가 바로 뜬다.
+      try {
+        const res = await fetch('/api/saju', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(input),
+        })
+        const data = await res.json()
+        if (!data.ok) throw new Error(data.error)
+        setResult({
+          chart: data.chart,
+          analysis: data.analysis,
+          persona: data.persona,
+          input,
+          name,
+        })
+        setTimeout(() => resultRef.current?.scrollIntoView({ behavior: 'smooth' }), 60)
+      } catch (e) {
+        setError(e instanceof Error ? e.message : '사주 계산에 실패했습니다.')
+        setStreaming(false)
+        setTodayLoading(false)
+        return
+      }
+
+      // 2단계: 오늘의 운세와 카드 풀이를 나란히 받는다.
+      const todayPromise = fetch('/api/today', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(input),
         signal: controller.signal,
       })
+        .then((r) => r.json())
+        .then((d) => {
+          if (d.ok) setToday({ fortune: d.fortune, message: d.message })
+        })
+        .catch(() => {
+          // 오늘의 운세가 실패해도 본 풀이는 계속 간다
+        })
+        .finally(() => setTodayLoading(false))
 
-      // 서버가 밀어주는 조각을 읽어 화면에 이어 붙인다
-      await readSse(res, {
-        onDelta: (t) => setText((prev) => prev + t),
-        onCached: () => setFromCache(true),
-        onError: (m) => setError(m),
-      })
-    } catch (e) {
-      if ((e as Error).name !== 'AbortError') {
-        setError(e instanceof Error ? e.message : '알 수 없는 오류가 발생했습니다.')
+      try {
+        const res = await fetch('/api/brief', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(input),
+          signal: controller.signal,
+        })
+        await readSse(res, {
+          onDelta: (t) => setBrief((prev) => prev + t),
+          onError: (m) => setError(m),
+        })
+      } catch (e) {
+        if ((e as Error).name !== 'AbortError') {
+          setError(e instanceof Error ? e.message : '풀이 중 오류가 발생했습니다.')
+        }
+      } finally {
+        setStreaming(false)
       }
-    } finally {
-      setStreaming(false)
-    }
-  }, [])
 
-  const handleSubmit = useCallback(async () => {
-    const input = toInput(form)
-    setError(null)
-    setChart(null)
-    setAnalysis(null)
-    setSuggestions([])
-    setText('')
+      await todayPromise
+    },
+    [],
+  )
 
-    // 1단계: 사주 계산. AI 없이 즉시 끝난다.
-    try {
-      const res = await fetch('/api/saju', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(input),
-      })
-      const data = await res.json()
-      if (!data.ok) throw new Error(data.error)
-      setChart(data.chart)
-      setAnalysis(data.analysis)
-      setSuggestions(data.suggestions ?? [])
-      setLastInput(input)
-      setAuth(data.auth)
-      setTimeout(() => resultRef.current?.scrollIntoView({ behavior: 'smooth' }), 50)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : '사주 계산에 실패했습니다.')
-      return
-    }
-
-    // 2단계: 표를 먼저 보여준 뒤 AI 해석을 받는다.
-    await runInterpretation(input)
-  }, [form, runInterpretation])
+  const handleSubmit = useCallback(() => {
+    if (!isReady(form)) return
+    run(toInput(form), pickedName)
+  }, [form, pickedName, run])
 
   return (
-    <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8 sm:px-6 sm:py-12">
-      <header className="mb-8 text-center">
-        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">사주 풀이</h1>
+    <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-8 sm:px-6 sm:py-12">
+      <header className="mb-6 text-center">
+        <p className="text-xs font-medium tracking-widest text-accent">SAJU</p>
+        <h1 className="mt-1.5 text-3xl font-bold tracking-tight sm:text-4xl">
+          나는 어떤 사람일까
+        </h1>
         <p className="mt-2 text-sm text-muted">
-          생년월일로 <Term name="일주">사주팔자</Term>를 계산하고, 그 결과를 AI가 풀어서
-          설명해 드립니다.
+          생년월일만 넣으면 사주를 계산하고 AI가 풀어드립니다.
         </p>
-        <Link
-          href="/compat"
-          className="mt-3 inline-block text-xs text-muted underline underline-offset-4 transition hover:text-accent"
-        >
-          두 사람 궁합 보러 가기
-        </Link>
       </header>
 
-      <section className="rounded-2xl border border-border bg-surface p-4 shadow-sm sm:p-6">
-        <BirthForm value={form} onChange={setForm} onSubmit={handleSubmit} busy={streaming} />
+      {/* 입력 */}
+      <section className="card p-4 sm:p-6">
+        <ProfilePicker onPick={pickProfile} />
+        <BirthForm
+          value={form}
+          onChange={(f) => {
+            setForm(f)
+            setPickedName(null)
+          }}
+          onSubmit={handleSubmit}
+          busy={streaming}
+        />
       </section>
 
+      <p className="mt-3 text-center text-xs text-muted">
+        <Link href="/compat" className="underline underline-offset-4 transition hover:text-accent">
+          두 사람 궁합 보기
+        </Link>
+      </p>
+
       {error && (
-        <div className="mt-6 rounded-xl border border-fire/40 bg-fire/5 p-4 text-sm text-fire">
+        <div className="mt-6 rounded-2xl border border-fire/40 bg-fire/10 p-4 text-sm text-fire">
           <strong className="font-semibold">문제가 생겼습니다.</strong>
           <p className="mt-1 leading-relaxed">{error}</p>
           {error.includes('로그인') && (
             <p className="mt-2 text-xs leading-relaxed text-muted">
-              터미널에서 <code className="rounded bg-surface-muted px-1">claude setup-token</code>
-              을 실행해 토큰을 만들고, <code className="rounded bg-surface-muted px-1">.env.local</code>{' '}
-              파일의 <code className="rounded bg-surface-muted px-1">CLAUDE_CODE_OAUTH_TOKEN</code>에
-              넣어 주세요. 자세한 방법은 README에 적어 두었습니다.
+              터미널에서 <code>claude setup-token</code> 을 실행해 토큰을 만들고,{' '}
+              <code>.env.local</code> 의 <code>CLAUDE_CODE_OAUTH_TOKEN</code> 에 넣어 주세요.
             </p>
           )}
         </div>
       )}
 
-      {chart && (
-        <div ref={resultRef} className="mt-8 space-y-6">
-          {/* 만세력 표 */}
-          <section className="rounded-2xl border border-border bg-surface p-4 shadow-sm sm:p-6">
-            <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
-              <h2 className="text-lg font-semibold">만세력</h2>
-              <p className="text-xs text-muted">
-                양력 {chart.solar.year}. {chart.solar.month}. {chart.solar.day}.
-                {' · '}음력 {chart.lunar.month}. {chart.lunar.day}.
-                {chart.lunar.isLeapMonth && ' (윤달)'}
-                {' · '}만 {chart.age}세
-              </p>
-            </div>
+      {result && (
+        <div ref={resultRef} className="mt-8 space-y-4">
+          <PersonaCard persona={result.persona} chart={result.chart} name={result.name} />
 
-            <SajuTable chart={chart} />
+          <TodayCard
+            fortune={today?.fortune ?? null}
+            message={today?.message ?? ''}
+            loading={todayLoading}
+          />
 
-            <div className="mt-5 rounded-lg bg-surface-muted/60 p-3 text-sm">
-              <span className="text-muted">나를 뜻하는 글자는 </span>
-              <strong className="text-base">
-                <span className="hanja">{chart.dayMaster.hanja}</span> {chart.dayMaster.stem}
-              </strong>
-              <span className="text-muted">
-                , {chart.dayMaster.yinYang}
-                {chart.dayMaster.element}입니다. 나머지 일곱 글자는 모두 이 글자와의 관계로
-                풀이합니다.
-              </span>
-            </div>
+          <BriefCards text={brief} streaming={streaming} />
 
-            {chart.notes.length > 0 && (
-              <ul className="mt-4 space-y-1.5 text-xs leading-relaxed text-muted">
-                {chart.notes.map((n, i) => (
-                  <li key={i} className="flex gap-2">
-                    <span className="shrink-0">·</span>
-                    <span>{n}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
+          {!streaming && brief && (
+            <>
+              <div className="card p-4">
+                <ShareCard
+                  persona={result.persona}
+                  chart={result.chart}
+                  name={result.name}
+                />
+              </div>
 
-          {/* 오행 분포 */}
-          <section className="rounded-2xl border border-border bg-surface p-4 shadow-sm sm:p-6">
-            <h2 className="mb-4 text-lg font-semibold">오행 분포</h2>
-            <ElementBar chart={chart} />
-          </section>
-
-          {/* 신강신약과 용신 */}
-          {analysis && (
-            <section className="rounded-2xl border border-border bg-surface p-4 shadow-sm sm:p-6">
-              <h2 className="mb-1 text-lg font-semibold">
-                <Term name="신강">신강</Term>·<Term name="신약">신약</Term>과{' '}
-                <Term name="용신">용신</Term>
-              </h2>
-              <p className="mb-4 text-xs text-muted">
-                일간이 강한지 약한지를 정하고, 그에 따라 나에게 이로운 기운을 찾습니다. 아래
-                해석 전체가 여기서 출발합니다.
-              </p>
-              <StrengthPanel chart={chart} analysis={analysis} />
-            </section>
-          )}
-
-          {/* 글자 사이의 관계 */}
-          {analysis && (
-            <section className="rounded-2xl border border-border bg-surface p-4 shadow-sm sm:p-6">
-              <h2 className="mb-1 text-lg font-semibold">글자 사이의 관계</h2>
-              <p className="mb-4 text-xs text-muted">
-                글자끼리 끌어당기거나 부딪치는 관계입니다. 개수만 세어서는 안 보이는 힘이
-                여기서 드러납니다.
-              </p>
-              <RelationList analysis={analysis} />
-            </section>
-          )}
-
-          {/* 12운성·12신살·신살 */}
-          {analysis && (
-            <section className="rounded-2xl border border-border bg-surface p-4 shadow-sm sm:p-6">
-              <h2 className="mb-1 text-lg font-semibold">
-                <Term name="12운성">12운성</Term>과 <Term name="신살">신살</Term>
-              </h2>
-              <p className="mb-4 text-xs text-muted">
-                앞의 신강신약과 용신이 뼈대라면 여기는 살입니다. 참고로 보는 항목이라 앞의
-                결론을 뒤집지는 않습니다.
-              </p>
-              <SpiritList chart={chart} analysis={analysis} />
-            </section>
-          )}
-
-          {/* 대운·세운 */}
-          <section className="rounded-2xl border border-border bg-surface p-4 shadow-sm sm:p-6">
-            <h2 className="mb-4 text-lg font-semibold">
-              <Term name="대운">대운</Term>과 <Term name="세운">세운</Term>
-            </h2>
-            <LuckTable chart={chart} />
-          </section>
-
-          {/* AI 해석 */}
-          <section>
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-              <h2 className="text-lg font-semibold">
-                풀이
-                {streaming && (
-                  <span className="ml-2 text-xs font-normal text-muted">쓰는 중…</span>
-                )}
-              </h2>
-              {!streaming && text && (
-                <button
-                  type="button"
-                  onClick={() => runInterpretation(toInput(form))}
-                  className="rounded-lg border border-border px-3 py-1.5 text-xs text-muted transition hover:border-accent hover:text-accent"
-                >
-                  다시 풀이
-                </button>
-              )}
-            </div>
-
-            {text ? (
-              <Interpretation text={text} streaming={streaming} fromCache={fromCache} />
-            ) : (
-              streaming && (
-                <div className="rounded-xl border border-border bg-surface p-6 text-center text-sm text-muted">
-                  사주를 읽고 있습니다. 잠시만 기다려 주세요.
-                </div>
-              )
-            )}
-          </section>
-
-          {/* 후속 질문 */}
-          {lastInput && text && !streaming && (
-            <section className="rounded-2xl border border-border bg-surface p-4 shadow-sm sm:p-6">
-              <h2 className="mb-1 text-lg font-semibold">더 물어보기</h2>
-              <p className="mb-4 text-xs text-muted">
-                위 풀이를 읽고 궁금한 점을 이어서 물어보실 수 있습니다.
-              </p>
-              <FollowUp
-                input={lastInput}
-                interpretation={text}
-                suggestions={suggestions}
+              <SaveProfileButton
+                key={result.name ?? 'unnamed'}
+                input={result.input}
+                defaultName={result.name}
               />
-            </section>
+
+              <DeepDive
+                chart={result.chart}
+                analysis={result.analysis}
+                input={result.input}
+              />
+            </>
           )}
 
-          <footer className="border-t border-border pt-5 text-center text-xs leading-relaxed text-muted">
-            <p>
-              이 풀이는 오락과 참고용입니다. 중요한 결정은 스스로의 판단과 전문가의 조언에
-              따라 주세요.
-            </p>
-            {auth && (
-              <p className="mt-2">
-                AI 인증 방식: {auth.label}
-                {auth.usesSubscription && ' · 구독 사용량이 차감됩니다'}
-              </p>
-            )}
+          <footer className="pt-4 text-center text-xs leading-relaxed text-muted">
+            오락과 참고용입니다. 중요한 결정은 스스로의 판단과 전문가의 조언에 따라 주세요.
           </footer>
         </div>
       )}

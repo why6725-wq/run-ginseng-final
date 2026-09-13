@@ -2,21 +2,27 @@
 
 import { useCallback, useRef, useState } from 'react'
 import Link from 'next/link'
-import { BirthForm, INITIAL_FORM, toInput, type FormState } from '@/components/BirthForm'
+import {
+  BirthForm,
+  INITIAL_FORM,
+  fromInput,
+  isReady,
+  toInput,
+  type FormState,
+} from '@/components/BirthForm'
+import { ProfilePicker } from '@/components/ProfilePicker'
 import { CompatResult } from '@/components/CompatResult'
 import { Interpretation } from '@/components/Interpretation'
 import { readSse } from '@/lib/sse'
 import { COMPAT_SECTIONS } from '@/lib/compat-prompt'
 import type { SajuChart } from '@/lib/saju'
 import type { Compatibility } from '@/lib/compat'
+import type { SajuInput } from '@/lib/saju'
 
 interface Person {
   name: string | null
   chart: SajuChart
 }
-
-const field =
-  'w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none transition focus:border-accent focus:ring-1 focus:ring-accent'
 
 /** 두 분의 관계 보기. 해석의 결이 달라진다. */
 const RELATIONS = ['연인', '부부', '썸 타는 사이', '친구', '동업', '가족'] as const
@@ -40,10 +46,7 @@ export default function CompatPage() {
   const abortRef = useRef<AbortController | null>(null)
   const resultRef = useRef<HTMLDivElement>(null)
 
-  const ready = (f: FormState) =>
-    f.year !== '' && f.month !== '' && f.day !== '' && (f.hourUnknown || f.hour !== '')
-
-  const bothReady = ready(formA) && ready(formB)
+  const bothReady = isReady(formA) && isReady(formB)
 
   const runInterpretation = useCallback(
     async (payload: Record<string, unknown>) => {
@@ -113,21 +116,16 @@ export default function CompatPage() {
 
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8 sm:px-6 sm:py-12">
-      <header className="mb-8 text-center">
-        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">궁합</h1>
+      <header className="mb-6 text-center">
+        <p className="text-xs font-medium tracking-widest text-accent">COMPATIBILITY</p>
+        <h1 className="mt-1.5 text-3xl font-bold tracking-tight sm:text-4xl">우리 궁합</h1>
         <p className="mt-2 text-sm text-muted">
-          두 분의 사주를 나란히 놓고 어떤 구조로 만나는지 봅니다.
+          두 사람의 사주를 나란히 놓고 어떤 구조로 만나는지 봅니다.
         </p>
-        <Link
-          href="/"
-          className="mt-3 inline-block text-xs text-muted underline underline-offset-4 transition hover:text-accent"
-        >
-          한 사람 사주 풀이로 가기
-        </Link>
       </header>
 
       {/* 관계 */}
-      <section className="mb-4 rounded-2xl border border-border bg-surface p-4 shadow-sm sm:p-6">
+      <section className="card mb-4 p-4 sm:p-6">
         <span className="mb-1.5 block text-xs font-medium text-muted">
           두 분은 어떤 사이인가요? (선택)
         </span>
@@ -139,7 +137,7 @@ export default function CompatPage() {
               onClick={() => setRelation(relation === r ? '' : r)}
               className={`rounded-full border px-3 py-1.5 text-xs transition ${
                 relation === r
-                  ? 'border-accent bg-accent-soft font-medium'
+                  ? 'border-accent bg-accent/15 font-semibold text-accent'
                   : 'border-border text-muted hover:border-accent/50'
               }`}
             >
@@ -158,20 +156,24 @@ export default function CompatPage() {
           { label: '첫째 분', form: formA, setForm: setFormA, name: nameA, setName: setNameA },
           { label: '둘째 분', form: formB, setForm: setFormB, name: nameB, setName: setNameB },
         ].map((p) => (
-          <section
-            key={p.label}
-            className="rounded-2xl border border-border bg-surface p-4 shadow-sm sm:p-6"
-          >
-            <h2 className="mb-3 text-base font-semibold">{p.label}</h2>
-            <div className="mb-4">
+          <section key={p.label} className="card p-4 sm:p-6">
+            <h2 className="mb-3 text-base font-bold">{p.label}</h2>
+            <ProfilePicker
+              compact
+              onPick={(input: SajuInput, name: string) => {
+                p.setForm(fromInput(input))
+                p.setName(name)
+              }}
+            />
+            <div className="mb-4 mt-3">
               <label className="mb-1.5 block text-xs font-medium text-muted">
                 이름 (선택)
               </label>
               <input
-                className={field}
+                className="field"
                 value={p.name}
                 maxLength={20}
-                placeholder="비워두면 첫째 분, 둘째 분으로 부릅니다"
+                placeholder="비워두면 첫째 분으로 부릅니다"
                 onChange={(e) => p.setName(e.target.value)}
               />
             </div>
@@ -190,13 +192,19 @@ export default function CompatPage() {
         type="button"
         onClick={handleSubmit}
         disabled={!bothReady || streaming}
-        className="mt-4 w-full rounded-lg bg-accent px-4 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+        className="btn-primary mt-4 w-full py-3.5"
       >
-        {streaming ? '풀이하는 중…' : '궁합 보기'}
+        {streaming ? '보는 중…' : '궁합 보기'}
       </button>
 
+      <p className="mt-3 text-center text-xs text-muted">
+        <Link href="/" className="underline underline-offset-4 transition hover:text-accent">
+          한 사람 사주 보기
+        </Link>
+      </p>
+
       {error && (
-        <div className="mt-6 rounded-xl border border-fire/40 bg-fire/5 p-4 text-sm text-fire">
+        <div className="mt-6 rounded-2xl border border-fire/40 bg-fire/10 p-4 text-sm text-fire">
           <strong className="font-semibold">문제가 생겼습니다.</strong>
           <p className="mt-1 leading-relaxed">{error}</p>
         </div>
@@ -204,8 +212,8 @@ export default function CompatPage() {
 
       {result && (
         <div ref={resultRef} className="mt-8 space-y-6">
-          <section className="rounded-2xl border border-border bg-surface p-4 shadow-sm sm:p-6">
-            <h2 className="mb-4 text-lg font-semibold">궁합 점수</h2>
+          <section className="card rise p-4 sm:p-6">
+            <h2 className="mb-4 text-lg font-bold">궁합 점수</h2>
             <CompatResult a={result.a} b={result.b} compatibility={result.compatibility} />
           </section>
 
@@ -228,7 +236,7 @@ export default function CompatPage() {
               />
             ) : (
               streaming && (
-                <div className="rounded-xl border border-border bg-surface p-6 text-center text-sm text-muted">
+                <div className="card p-6 text-center text-sm text-muted">
                   두 사주를 맞대어 보고 있습니다. 잠시만 기다려 주세요.
                 </div>
               )

@@ -56,7 +56,7 @@ export function StrengthPanel({
           <span className="text-xs text-muted">한 사주입니다</span>
         </div>
 
-        <div className="relative h-6 overflow-hidden rounded-full bg-surface-muted">
+        <div className="relative h-6 overflow-hidden rounded-full bg-surface-2">
           <div className="absolute inset-y-0 left-0 w-[40%] border-r border-background/40 bg-water/25" />
           <div className="absolute inset-y-0 left-[40%] w-[21%] border-r border-background/40 bg-earth/25" />
           <div className="absolute inset-y-0 left-[61%] right-0 bg-fire/25" />
@@ -71,19 +71,19 @@ export function StrengthPanel({
           <span>신강 61~100</span>
         </div>
 
-        <p className="mt-3 text-sm leading-relaxed text-foreground/90">{strength.summary}</p>
+        <p className="mt-3 text-sm leading-relaxed text-foreground/85">{strength.summary}</p>
 
         <div className="mt-2 flex flex-wrap gap-2 text-xs">
           <span
             className={`rounded-full border px-2.5 py-1 ${
-              strength.hasSeason ? 'border-accent bg-accent-soft' : 'border-border text-muted'
+              strength.hasSeason ? 'border-accent bg-accent/15' : 'border-border text-muted'
             }`}
           >
             <Term name="득령">득령</Term> {strength.hasSeason ? '함' : '못함'}
           </span>
           <span
             className={`rounded-full border px-2.5 py-1 ${
-              strength.hasGround ? 'border-accent bg-accent-soft' : 'border-border text-muted'
+              strength.hasGround ? 'border-accent bg-accent/15' : 'border-border text-muted'
             }`}
           >
             <Term name="득지">득지</Term> {strength.hasGround ? '함' : '못함'}
@@ -191,7 +191,7 @@ export function StrengthPanel({
         <p className="mt-3 text-xs leading-relaxed text-muted">{yongsin.reason}</p>
 
         {yongsin.missingFavorable.length > 0 && (
-          <p className="mt-2 rounded-lg bg-accent-soft p-2.5 text-xs leading-relaxed">
+          <p className="mt-2 rounded-lg bg-accent/15 p-2.5 text-xs leading-relaxed">
             이로운 기운 가운데{' '}
             <strong className="font-semibold">
               {josa(yongsin.missingFavorable.join(', '), '이/가')}

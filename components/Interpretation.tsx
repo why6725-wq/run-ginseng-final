@@ -122,14 +122,14 @@ export function Interpretation({
       {sections.map((s, i) => (
         <section
           key={i}
-          className="rounded-xl border border-border bg-surface p-4 sm:p-5"
+          className="card p-4 sm:p-5"
         >
           {s.title && (
             <h3 className="mb-3 border-b border-border pb-2 text-base font-semibold">
               {s.title}
             </h3>
           )}
-          <div className="text-[15px] leading-[1.85] text-foreground/90">
+          <div className="text-[15px] leading-[1.85] text-foreground/85">
             {annotate(s.body, seen)}
             {/* 지금 쓰고 있는 마지막 항목에 깜빡이는 커서를 붙인다 */}
             {streaming && i === sections.length - 1 && (

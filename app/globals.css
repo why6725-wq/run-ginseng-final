@@ -1,54 +1,44 @@
 @import 'tailwindcss';
 
 /*
-  한지와 먹을 떠올리게 하는 차분한 색으로 잡았다.
-  오행 색은 전통 배색(목=청, 화=적, 토=황, 금=백, 수=흑)을 따르되
-  화면에서 읽히도록 명도를 조정했다.
+  밤하늘을 바탕으로 잡았다.
+  사주를 보는 마음은 대개 밤에, 조용할 때 드는 것이라 어두운 배경이 어울린다.
+  거기에 보라와 남색 그라데이션을 얹고, 오행 색을 포인트로만 쓴다.
+
+  이전 한지·먹 배색은 정보를 빽빽하게 담기엔 좋았지만
+  첫인상이 무겁고 공유하고 싶은 그림이 나오지 않았다.
 */
 :root {
-  --background: #faf8f4;
-  --surface: #ffffff;
-  --surface-muted: #f3efe7;
-  --foreground: #1f1c17;
-  --muted: #6b6357;
-  --border: #e0d8c9;
-  --accent: #7a4a2b;
-  --accent-soft: #f0e4d8;
+  color-scheme: dark;
 
-  --el-wood: #2f7d5d;
-  --el-fire: #b8443c;
-  --el-earth: #9a7430;
-  --el-metal: #5c6b7a;
-  --el-water: #3a4a6b;
-}
+  --bg: #0b0a18;
+  --bg-soft: #141230;
+  --surface: #1a1836;
+  --surface-2: #232047;
+  --border: #302c5c;
+  --fg: #f2f0ff;
+  --muted: #a5a0c8;
+  --accent: #a78bfa;
+  --accent-2: #f472b6;
+  --accent-soft: #2a2350;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #16140f;
-    --surface: #1f1c17;
-    --surface-muted: #262219;
-    --foreground: #ece6da;
-    --muted: #a09684;
-    --border: #3a342a;
-    --accent: #d9a66c;
-    --accent-soft: #33291d;
-
-    --el-wood: #6cc79b;
-    --el-fire: #e8837a;
-    --el-earth: #d4ae62;
-    --el-metal: #a3b4c6;
-    --el-water: #8aa3d4;
-  }
+  --el-wood: #34d399;
+  --el-fire: #fb7185;
+  --el-earth: #fbbf24;
+  --el-metal: #a5b4fc;
+  --el-water: #60a5fa;
 }
 
 @theme inline {
-  --color-background: var(--background);
+  --color-bg: var(--bg);
+  --color-bg-soft: var(--bg-soft);
   --color-surface: var(--surface);
-  --color-surface-muted: var(--surface-muted);
-  --color-foreground: var(--foreground);
-  --color-muted: var(--muted);
+  --color-surface-2: var(--surface-2);
   --color-border: var(--border);
+  --color-foreground: var(--fg);
+  --color-muted: var(--muted);
   --color-accent: var(--accent);
+  --color-accent-2: var(--accent-2);
   --color-accent-soft: var(--accent-soft);
 
   --color-wood: var(--el-wood);
@@ -58,21 +48,120 @@
   --color-water: var(--el-water);
 }
 
+html {
+  background: var(--bg);
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
+  color: var(--fg);
   font-family:
     'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Noto Sans KR',
     'Malgun Gothic', system-ui, sans-serif;
+  /* 위쪽에 은은한 보랏빛 번짐을 깔아 밋밋함을 없앤다 */
+  background:
+    radial-gradient(60rem 40rem at 50% -10rem, rgba(167, 139, 250, 0.22), transparent 70%),
+    radial-gradient(40rem 30rem at 85% 5rem, rgba(244, 114, 182, 0.12), transparent 70%),
+    var(--bg);
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* 한자는 본문보다 살짝 키워야 균형이 맞는다 */
+/* 한자는 본문보다 획이 많아 조금 키워야 균형이 맞는다 */
 .hanja {
   font-family: 'Apple SD Gothic Neo', 'Noto Serif KR', 'Batang', serif;
 }
 
-/* 용어에 밑줄을 긋고 마우스를 올리면 설명이 뜨게 한다 */
+/* 용어에 점선을 긋고 누르면 설명이 뜬다 */
 .term {
   border-bottom: 1px dotted currentColor;
   cursor: help;
+}
+
+/* 카드 — 유리판을 겹쳐 놓은 느낌 */
+.card {
+  background: linear-gradient(
+    160deg,
+    rgba(255, 255, 255, 0.07),
+    rgba(255, 255, 255, 0.025)
+  );
+  border: 1px solid var(--border);
+  border-radius: 1.25rem;
+  backdrop-filter: blur(8px);
+}
+
+/* 강조 버튼 */
+.btn-primary {
+  background: linear-gradient(120deg, var(--accent), var(--accent-2));
+  color: #12102a;
+  font-weight: 700;
+  border-radius: 0.875rem;
+  transition: opacity 0.15s ease;
+}
+.btn-primary:hover:not(:disabled) {
+  opacity: 0.9;
+}
+.btn-primary:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* 입력칸 */
+.field {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  padding: 0.625rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--fg);
+  outline: none;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.field::placeholder {
+  color: color-mix(in srgb, var(--muted) 70%, transparent);
+}
+.field:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.2);
+}
+.field:disabled {
+  opacity: 0.4;
+}
+select.field option {
+  background: var(--surface);
+  color: var(--fg);
+}
+
+/* 숫자 입력칸의 위아래 화살표를 없앤다. 모바일에서 자리만 차지한다. */
+input[type='number']::-webkit-outer-spin-button,
+input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type='number'] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* 결과가 나타날 때 아래에서 부드럽게 올라오게 한다 */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.rise {
+  animation: rise 0.45s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rise {
+    animation: none;
+  }
 }

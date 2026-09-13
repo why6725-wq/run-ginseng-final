@@ -37,7 +37,7 @@ export function ElementBar({ chart }: { chart: SajuChart }) {
                   <span className="hanja ml-1 text-muted">{ELEMENT_TERMS[el].hanja}</span>
                 </Term>
               </div>
-              <div className="h-5 flex-1 overflow-hidden rounded bg-surface-muted">
+              <div className="h-5 flex-1 overflow-hidden rounded bg-surface-2">
                 <div
                   className={`h-full rounded ${BAR[el]} transition-[width] duration-500`}
                   style={{ width: `${pct}%` }}

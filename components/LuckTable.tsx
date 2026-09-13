@@ -33,8 +33,8 @@ export function LuckTable({ chart }: { chart: SajuChart }) {
                 key={p.age}
                 className={`w-[4.5rem] shrink-0 rounded-lg border p-2 text-center ${
                   p.isCurrent
-                    ? 'border-accent bg-accent-soft'
-                    : 'border-border bg-surface-muted/50'
+                    ? 'border-accent bg-accent/15'
+                    : 'border-border bg-surface-2/50'
                 }`}
               >
                 <div className="text-[11px] text-muted">{p.age}세</div>
@@ -64,7 +64,7 @@ export function LuckTable({ chart }: { chart: SajuChart }) {
         </p>
       </div>
 
-      <div className="rounded-lg border border-border bg-surface-muted/50 p-3">
+      <div className="rounded-lg border border-border bg-surface-2/50 p-3">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
           <span className="text-xs text-muted">
             <Term name="세운">{chart.yearlyLuck.year}년 세운</Term>
@@ -90,7 +90,7 @@ export function LuckTable({ chart }: { chart: SajuChart }) {
               <div
                 key={m.month}
                 className={`w-[3.6rem] shrink-0 rounded-lg border p-1.5 text-center ${
-                  m.isCurrent ? 'border-accent bg-accent-soft' : 'border-border'
+                  m.isCurrent ? 'border-accent bg-accent/15' : 'border-border'
                 }`}
               >
                 <div className="text-[11px] text-muted">{m.month}월</div>

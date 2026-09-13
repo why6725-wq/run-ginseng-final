@@ -23,8 +23,9 @@ const CACHE_DIR = path.join(process.cwd(), '.cache', 'interpretations')
  *
  * v2: 신강신약·용신·지장간·합충을 해석에 반영하기 시작함
  * v3: 12운성·12신살·신살·연주 공망·월운을 추가함
+ * v4: 카드형 짧은 풀이와 오늘의 운세를 추가함
  */
-const PROMPT_VERSION = 3
+const PROMPT_VERSION = 4
 
 /** 입력이 같으면 같은 키가 나오도록 한다. 해석이 달라지는 요소만 넣는다. */
 export function cacheKey(input: SajuInput, year: number): string {
@@ -76,6 +77,29 @@ export function compatCacheKey(
   const pair = [one(a), one(b)].sort()
   const material = JSON.stringify({ v: PROMPT_VERSION, kind: 'compat', pair, relation, year })
   return createHash('sha256').update(material).digest('hex').slice(0, 32)
+}
+
+/** 카드형 짧은 풀이 캐시 키 */
+export function briefCacheKey(input: SajuInput, year: number): string {
+  return hashOf({ v: PROMPT_VERSION, kind: 'brief', input: shape(input), year })
+}
+
+/** 오늘의 운세 캐시 키. 날짜가 바뀌면 자연히 새로 받는다. */
+export function todayCacheKey(input: SajuInput, date: string): string {
+  return hashOf({ v: PROMPT_VERSION, kind: 'today', input: shape(input), date })
+}
+
+/** 해석이 달라지는 입력 항목만 추린다 */
+function shape(i: SajuInput) {
+  return {
+    y: i.year, m: i.month, d: i.day, h: i.hour, mi: i.minute,
+    cal: i.calendar, leap: i.isLeapMonth, g: i.gender,
+    lon: i.longitude, tst: i.applyTrueSolarTime, db: i.dayBoundary,
+  }
+}
+
+function hashOf(material: unknown): string {
+  return createHash('sha256').update(JSON.stringify(material)).digest('hex').slice(0, 32)
 }
 
 export async function readCache(key: string): Promise<string | null> {

@@ -40,13 +40,13 @@ export function CompatResult({
           <span className="text-3xl font-semibold">{compatibility.score}점</span>
           <span className="text-base font-medium text-accent">{compatibility.verdict}</span>
         </div>
-        <div className="h-3 overflow-hidden rounded-full bg-surface-muted">
+        <div className="h-3 overflow-hidden rounded-full bg-surface-2">
           <div
             className="h-full rounded-full bg-accent transition-[width] duration-700"
             style={{ width: `${compatibility.score}%` }}
           />
         </div>
-        <p className="mt-3 text-sm leading-relaxed text-foreground/90">
+        <p className="mt-3 text-sm leading-relaxed text-foreground/85">
           {compatibility.summary}
         </p>
       </div>
@@ -63,7 +63,7 @@ export function CompatResult({
               {chart.pillars.map((p) => (
                 <div
                   key={p.label}
-                  className="flex-1 rounded border border-border bg-surface-muted/50 py-1.5 text-center"
+                  className="flex-1 rounded border border-border bg-surface-2/50 py-1.5 text-center"
                 >
                   <div className={`hanja text-sm ${ELEMENT_TEXT[p.stemElement]}`}>
                     {p.stemHanja}
@@ -88,7 +88,7 @@ export function CompatResult({
       {/* 서로 채워주는 기운 */}
       {(compatibility.fills.aNeedsFromB.length > 0 ||
         compatibility.fills.bNeedsFromA.length > 0) && (
-        <div className="rounded-lg bg-accent-soft p-3 text-sm leading-relaxed">
+        <div className="rounded-lg bg-accent/15 p-3 text-sm leading-relaxed">
           <div className="mb-1 font-semibold">서로 채워주는 기운</div>
           {compatibility.fills.aNeedsFromB.length > 0 && (
             <p className="text-xs">
@@ -118,7 +118,7 @@ export function CompatResult({
               </span>
             </div>
 
-            <div className="mb-2.5 h-1.5 overflow-hidden rounded-full bg-surface-muted">
+            <div className="mb-2.5 h-1.5 overflow-hidden rounded-full bg-surface-2">
               <div
                 className="h-full rounded-full bg-accent/60"
                 style={{ width: `${(sec.score / sec.max) * 100}%` }}
@@ -134,7 +134,7 @@ export function CompatResult({
                         ? 'bg-wood/15 text-wood'
                         : item.tone === 'caution'
                           ? 'bg-fire/15 text-fire'
-                          : 'bg-surface-muted text-muted'
+                          : 'bg-surface-2 text-muted'
                     }`}
                   >
                     {item.score >= 0 ? `+${item.score}` : item.score}

@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { BIRTH_PLACES, DEFAULT_PLACE, type SajuInput } from '@/lib/saju'
-import { Term } from './Term'
 
 export interface FormState {
   year: string
@@ -51,9 +50,60 @@ export function toInput(f: FormState): SajuInput {
   }
 }
 
-const field =
-  'w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none transition focus:border-accent focus:ring-1 focus:ring-accent'
+/** 저장해 둔 사람을 눌렀을 때 폼을 채운다 */
+export function fromInput(input: SajuInput): FormState {
+  const place = BIRTH_PLACES.find((p) => p.longitude === input.longitude) ?? DEFAULT_PLACE
+  return {
+    year: String(input.year),
+    month: String(input.month),
+    day: String(input.day),
+    hour: input.hour === null ? '' : String(input.hour),
+    minute: String(input.minute),
+    hourUnknown: input.hour === null,
+    calendar: input.calendar,
+    isLeapMonth: input.isLeapMonth,
+    gender: input.gender,
+    place: place.name,
+    applyTrueSolarTime: input.applyTrueSolarTime,
+    dayBoundary: input.dayBoundary,
+  }
+}
+
+export function isReady(f: FormState): boolean {
+  return f.year !== '' && f.month !== '' && f.day !== '' && (f.hourUnknown || f.hour !== '')
+}
+
 const label = 'mb-1.5 block text-xs font-medium text-muted'
+
+/** 두 개 중 하나를 고르는 토글 */
+function Toggle<T extends string>({
+  value,
+  options,
+  onChange,
+}: {
+  value: T
+  options: { value: T; label: string }[]
+  onChange: (v: T) => void
+}) {
+  return (
+    <div className="flex gap-1.5">
+      {options.map((o) => (
+        <button
+          key={o.value}
+          type="button"
+          onClick={() => onChange(o.value)}
+          className={`flex-1 rounded-xl border px-3 py-2.5 text-sm transition ${
+            value === o.value
+              ? 'border-accent bg-accent/15 font-semibold text-accent'
+              : 'border-border text-muted hover:border-accent/50'
+          }`}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  )
+}
 
 export function BirthForm({
   value,
@@ -61,23 +111,21 @@ export function BirthForm({
   onSubmit,
   busy,
   hideSubmit,
+  submitLabel = '내 사주 보기',
 }: {
   value: FormState
   onChange: (f: FormState) => void
   onSubmit: () => void
   busy: boolean
-  /** 궁합처럼 폼이 둘일 때는 제출 버튼을 바깥에 하나만 둔다 */
+  /** 궁합처럼 폼이 둘일 때는 제출 단추를 바깥에 하나만 둔다 */
   hideSubmit?: boolean
+  submitLabel?: string
 }) {
   const [advanced, setAdvanced] = useState(false)
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) =>
     onChange({ ...value, [k]: v })
 
-  const ready =
-    value.year !== '' &&
-    value.month !== '' &&
-    value.day !== '' &&
-    (value.hourUnknown || value.hour !== '')
+  const ready = isReady(value)
 
   return (
     <form
@@ -87,88 +135,69 @@ export function BirthForm({
         if (ready && !busy) onSubmit()
       }}
     >
-      {/* 양력 / 음력 */}
-      <div>
-        <span className={label}>달력 기준</span>
-        <div className="flex gap-2">
-          {(['solar', 'lunar'] as const).map((c) => (
-            <button
-              key={c}
-              type="button"
-              onClick={() => set('calendar', c)}
-              className={`flex-1 rounded-lg border px-3 py-2 text-sm transition ${
-                value.calendar === c
-                  ? 'border-accent bg-accent-soft font-medium'
-                  : 'border-border bg-surface text-muted hover:border-accent/50'
-              }`}
-            >
-              {c === 'solar' ? '양력' : '음력'}
-            </button>
-          ))}
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <span className={label}>달력</span>
+          <Toggle
+            value={value.calendar}
+            onChange={(v) => set('calendar', v)}
+            options={[
+              { value: 'solar', label: '양력' },
+              { value: 'lunar', label: '음력' },
+            ]}
+          />
         </div>
-        {value.calendar === 'lunar' && (
-          <label className="mt-2 flex items-center gap-2 text-xs text-muted">
-            <input
-              type="checkbox"
-              checked={value.isLeapMonth}
-              onChange={(e) => set('isLeapMonth', e.target.checked)}
-              className="accent-[var(--accent)]"
-            />
-            윤달입니다
-          </label>
-        )}
+        <div>
+          <span className={label}>성별</span>
+          <Toggle
+            value={value.gender}
+            onChange={(v) => set('gender', v)}
+            options={[
+              { value: 'male', label: '남성' },
+              { value: 'female', label: '여성' },
+            ]}
+          />
+        </div>
       </div>
+
+      {value.calendar === 'lunar' && (
+        <label className="flex items-center gap-2 text-xs text-muted">
+          <input
+            type="checkbox"
+            checked={value.isLeapMonth}
+            onChange={(e) => set('isLeapMonth', e.target.checked)}
+            className="accent-[var(--accent)]"
+          />
+          윤달입니다
+        </label>
+      )}
 
       {/* 생년월일 */}
       <div className="grid grid-cols-3 gap-2">
-        <div>
-          <label className={label} htmlFor="year">
-            년
-          </label>
-          <input
-            id="year"
-            className={field}
-            type="number"
-            inputMode="numeric"
-            placeholder="1990"
-            min={1900}
-            max={2100}
-            value={value.year}
-            onChange={(e) => set('year', e.target.value)}
-          />
-        </div>
-        <div>
-          <label className={label} htmlFor="month">
-            월
-          </label>
-          <input
-            id="month"
-            className={field}
-            type="number"
-            inputMode="numeric"
-            placeholder="5"
-            min={1}
-            max={12}
-            value={value.month}
-            onChange={(e) => set('month', e.target.value)}
-          />
-        </div>
-        <div>
-          <label className={label} htmlFor="day">
-            일
-          </label>
-          <input
-            id="day"
-            className={field}
-            type="number"
-            inputMode="numeric"
-            placeholder="15"
-            min={1}
-            max={31}
-            value={value.day}
-            onChange={(e) => set('day', e.target.value)}
-          />
-        </div>
+        {(
+          [
+            { id: 'year', key: 'year', label: '년', ph: '1998', min: 1900, max: 2100 },
+            { id: 'month', key: 'month', label: '월', ph: '8', min: 1, max: 12 },
+            { id: 'day', key: 'day', label: '일', ph: '21', min: 1, max: 31 },
+          ] as const
+        ).map((f) => (
+          <div key={f.id}>
+            <label className={label} htmlFor={f.id}>
+              {f.label}
+            </label>
+            <input
+              id={f.id}
+              className="field"
+              type="number"
+              inputMode="numeric"
+              placeholder={f.ph}
+              min={f.min}
+              max={f.max}
+              value={value[f.key]}
+              onChange={(e) => set(f.key, e.target.value)}
+            />
+          </div>
+        ))}
       </div>
 
       {/* 태어난 시각 */}
@@ -187,10 +216,10 @@ export function BirthForm({
         </div>
         <div className="grid grid-cols-2 gap-2">
           <input
-            className={`${field} disabled:opacity-40`}
+            className="field"
             type="number"
             inputMode="numeric"
-            placeholder="14 (시)"
+            placeholder="8 (시)"
             min={0}
             max={23}
             disabled={value.hourUnknown}
@@ -199,10 +228,10 @@ export function BirthForm({
             aria-label="시"
           />
           <input
-            className={`${field} disabled:opacity-40`}
+            className="field"
             type="number"
             inputMode="numeric"
-            placeholder="30 (분)"
+            placeholder="10 (분)"
             min={0}
             max={59}
             disabled={value.hourUnknown}
@@ -213,69 +242,49 @@ export function BirthForm({
         </div>
         {value.hourUnknown && (
           <p className="mt-1.5 text-xs text-muted">
-            시각을 모르면 <Term name="시주">시주</Term>를 비우고 세 기둥으로 풀이합니다.
+            시각을 모르면 시주를 비우고 세 기둥으로 풀이합니다.
           </p>
         )}
       </div>
 
-      {/* 성별 */}
-      <div>
-        <span className={label}>성별</span>
-        <div className="flex gap-2">
-          {(['male', 'female'] as const).map((g) => (
-            <button
-              key={g}
-              type="button"
-              onClick={() => set('gender', g)}
-              className={`flex-1 rounded-lg border px-3 py-2 text-sm transition ${
-                value.gender === g
-                  ? 'border-accent bg-accent-soft font-medium'
-                  : 'border-border bg-surface text-muted hover:border-accent/50'
-              }`}
-            >
-              {g === 'male' ? '남성' : '여성'}
-            </button>
-          ))}
-        </div>
-        <p className="mt-1.5 text-xs text-muted">
-          <Term name="대운">대운</Term>이 앞으로 가는지 뒤로 가는지를 정하는 데 쓰입니다.
-        </p>
-      </div>
-
-      {/* 출생지 */}
-      <div>
-        <label className={label} htmlFor="place">
-          태어난 지역
-        </label>
-        <select
-          id="place"
-          className={field}
-          value={value.place}
-          onChange={(e) => set('place', e.target.value)}
-        >
-          {BIRTH_PLACES.map((p) => (
-            <option key={p.name} value={p.name}>
-              {p.name}
-            </option>
-          ))}
-        </select>
-        <p className="mt-1.5 text-xs text-muted">
-          지역마다 실제 태양 위치가 조금씩 달라 <Term name="시주">시주</Term>가 바뀔 수 있습니다.
-        </p>
-      </div>
-
       {/* 고급 설정 */}
-      <div className="rounded-lg border border-border">
+      <div className="rounded-xl border border-border">
         <button
           type="button"
           onClick={() => setAdvanced((v) => !v)}
-          className="flex w-full items-center justify-between px-3 py-2.5 text-xs font-medium text-muted"
+          className="flex w-full items-center justify-between px-3 py-2.5 text-xs text-muted"
         >
-          <span>계산 방식 상세 설정</span>
+          <span>
+            태어난 지역 · 계산 방식
+            {value.place !== DEFAULT_PLACE.name && (
+              <span className="ml-1.5 text-accent">{value.place}</span>
+            )}
+          </span>
           <span className="text-base leading-none">{advanced ? '−' : '+'}</span>
         </button>
         {advanced && (
           <div className="space-y-3 border-t border-border p-3">
+            <div>
+              <label className={label} htmlFor={`place-${value.place}`}>
+                태어난 지역
+              </label>
+              <select
+                id={`place-${value.place}`}
+                className="field"
+                value={value.place}
+                onChange={(e) => set('place', e.target.value)}
+              >
+                {BIRTH_PLACES.map((p) => (
+                  <option key={p.name} value={p.name}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1.5 text-xs text-muted">
+                지역마다 실제 태양 위치가 조금 달라 시주가 바뀔 수 있습니다.
+              </p>
+            </div>
+
             <label className="flex items-start gap-2 text-xs">
               <input
                 type="checkbox"
@@ -284,22 +293,19 @@ export function BirthForm({
                 className="mt-0.5 accent-[var(--accent)]"
               />
               <span>
-                <strong className="font-medium">
-                  <Term name="진태양시">진태양시</Term> 보정
-                </strong>
+                <strong className="font-medium">진태양시 보정</strong>
                 <br />
                 <span className="text-muted">
-                  끄면 시계에 적힌 시각을 그대로 씁니다. 켜두시길 권합니다.
+                  우리 시계는 동경 135도 기준이라 실제 태양보다 약 30분 빠릅니다. 켜두시길
+                  권합니다.
                 </span>
               </span>
             </label>
 
             <div>
-              <span className={label}>
-                밤 11시~자정 출생 처리 (<Term name="야자시">야자시</Term>)
-              </span>
+              <span className={label}>밤 11시~자정 출생 처리</span>
               <select
-                className={field}
+                className="field"
                 value={value.dayBoundary}
                 onChange={(e) => set('dayBoundary', e.target.value as FormState['dayBoundary'])}
               >
@@ -313,12 +319,8 @@ export function BirthForm({
       </div>
 
       {!hideSubmit && (
-        <button
-          type="submit"
-          disabled={!ready || busy}
-          className="w-full rounded-lg bg-accent px-4 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          {busy ? '풀이하는 중…' : '사주 풀이 보기'}
+        <button type="submit" disabled={!ready || busy} className="btn-primary w-full py-3.5">
+          {busy ? '보는 중…' : submitLabel}
         </button>
       )}
     </form>

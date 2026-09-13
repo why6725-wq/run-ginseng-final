@@ -103,7 +103,7 @@ export function FollowUp({
       )}
 
       {error && (
-        <div className="rounded-xl border border-fire/40 bg-fire/5 p-3 text-sm text-fire">
+        <div className="rounded-xl border border-fire/40 bg-fire/10 p-3 text-sm text-fire">
           {error}
         </div>
       )}
@@ -179,13 +179,13 @@ function QnaBlock({
   return (
     <div className="space-y-2">
       <div className="flex justify-end">
-        <p className="max-w-[85%] rounded-2xl rounded-br-sm bg-accent-soft px-3.5 py-2.5 text-sm leading-relaxed">
+        <p className="max-w-[85%] rounded-2xl rounded-br-sm bg-accent/15 px-3.5 py-2.5 text-sm leading-relaxed">
           {question}
         </p>
       </div>
       <div className="rounded-2xl rounded-bl-sm border border-border bg-surface px-4 py-3">
         {answer ? (
-          <div className="text-[15px] leading-[1.85] text-foreground/90">
+          <div className="text-[15px] leading-[1.85] text-foreground/85">
             {answer
               .split(/\n{2,}/)
               .filter((p) => p.trim())
