@@ -136,13 +136,14 @@ export function chartToText(chart: SajuChart): string {
 
   lines.push('## 신강신약 (해석의 뼈대. 여기서 출발하십시오)')
   lines.push(`- 판정: ${analysis.strength.verdict} (${analysis.strength.score}점 / 100점 만점)`)
-  lines.push(`- 기준: 61점 이상 신강, 40점 미만 신약, 그 사이는 중화`)
+  lines.push(`- 기준: 56점 이상 신강, 44점 이하 신약, 45~55는 중화. 50점이 정확한 중간이다`)
   lines.push(`- 득령(월지가 일간을 돕는가): ${analysis.strength.hasSeason ? '득령했다' : '득령하지 못했다'}`)
   lines.push(`- 득지(일지가 일간을 돕는가): ${analysis.strength.hasGround ? '득지했다' : '득지하지 못했다'}`)
   lines.push('- 자리별 근거:')
   for (const r of analysis.strength.rows) {
     lines.push(
-      `  - ${r.position} ${r.char}(${r.hanja}) ${r.element} ${r.tenGod} / ${r.weight}점 / ` +
+      `  - ${r.position} ${r.char}(${r.hanja}) ${r.element} ${r.tenGod}(${r.role}) / ` +
+        `배점 ${r.weight} 중 ${r.points}점 / ` +
         `${r.helps ? '일간을 도움' : '일간의 힘을 덜어냄'} — ${r.reason}`,
     )
   }

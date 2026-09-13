@@ -15,6 +15,7 @@ import {
   CONTROLS,
   GENERATED_BY,
   analyze,
+  elementRole,
   findRelations,
   judgeStrength,
 } from '../lib/analysis'
@@ -156,6 +157,41 @@ describe('합충 찾기', () => {
 })
 
 describe('신강신약 판정', () => {
+  /**
+   * 역할마다 배점의 몇 할을 가져가는지. lib/analysis.ts 와 일부러 따로 적어둔다.
+   * 여기 값과 어긋나게 고치면 시험이 잡아낸다.
+   */
+  const CREDIT: Record<string, number> = {
+    비겁: 1,
+    인성: 0.9,
+    식상: 0.3,
+    재성: 0.2,
+    관성: 0.1,
+  }
+
+  it('다섯 역할의 평균이 정확히 0.5라 50점이 한가운데다', () => {
+    const values = Object.values(CREDIT)
+    expect(values.reduce((a, b) => a + b, 0) / values.length).toBeCloseTo(0.5, 10)
+  })
+
+  it('역할을 오행 관계대로 가른다', () => {
+    // 경금 일간에서 보면
+    expect(elementRole('금', '금')).toBe('비겁')
+    expect(elementRole('금', '토')).toBe('인성') // 토생금
+    expect(elementRole('금', '수')).toBe('식상') // 금생수
+    expect(elementRole('금', '목')).toBe('재성') // 금극목
+    expect(elementRole('금', '화')).toBe('관성') // 화극금
+  })
+
+  it('어느 일간에서 보든 다섯 역할이 하나씩 나온다', () => {
+    for (const day of ['목', '화', '토', '금', '수'] as FiveElement[]) {
+      const roles = (['목', '화', '토', '금', '수'] as FiveElement[]).map((e) =>
+        elementRole(day, e),
+      )
+      expect(new Set(roles).size, day).toBe(5)
+    }
+  })
+
   it('배점 합이 항상 100이다 (네 기둥)', () => {
     for (const y of [1960, 1975, 1990, 2005, 2020]) {
       const s = judgeStrength(chartOf({ year: y, month: 6, day: 10, hour: 9, minute: 0 }))
@@ -180,7 +216,7 @@ describe('신강신약 판정', () => {
     for (let y = 1950; y <= 2020; y += 7) {
       for (const m of [2, 5, 8, 11]) {
         const s = judgeStrength(chartOf({ year: y, month: m, day: 12, hour: 14, minute: 0 }))
-        const want = s.score >= 61 ? '신강' : s.score < 40 ? '신약' : '중화'
+        const want = s.score >= 56 ? '신강' : s.score <= 44 ? '신약' : '중화'
         expect(s.verdict, `${y}-${m}`).toBe(want)
         expect(s.score).toBeGreaterThanOrEqual(0)
         expect(s.score).toBeLessThanOrEqual(100)
@@ -188,10 +224,49 @@ describe('신강신약 판정', () => {
     }
   })
 
-  it('돕는 자리는 비겁이나 인성의 오행이다', () => {
-    const chart = chartOf({})
-    const s = judgeStrength(chart)
-    for (const r of s.rows) {
+  it('가져간 점수가 배점을 넘지 않는다', () => {
+    for (let y = 1950; y <= 2020; y += 7) {
+      const s = judgeStrength(chartOf({ year: y, month: 3, day: 12, hour: 14, minute: 0 }))
+      for (const r of s.rows) {
+        expect(r.credit, `${y} ${r.position}`).toBeGreaterThanOrEqual(0)
+        expect(r.credit, `${y} ${r.position}`).toBeLessThanOrEqual(1)
+        expect(r.points, `${y} ${r.position}`).toBeLessThanOrEqual(r.weight + 0.05)
+      }
+      // 합계가 배점 총합(100)을 넘지 않는다
+      expect(s.rows.reduce((a, r) => a + r.points, 0)).toBeLessThanOrEqual(100.5)
+    }
+  })
+
+  it('비겁은 배점을 전부 가져가고 관성은 거의 못 가져간다', () => {
+    // 천간은 지장간이 없어 역할이 그대로 드러난다
+    for (let y = 1950; y <= 2020; y += 3) {
+      const s = judgeStrength(chartOf({ year: y, month: 9, day: 4, hour: 11, minute: 0 }))
+      for (const r of s.rows.filter((x) => x.position.endsWith('간'))) {
+        if (r.role === '비겁') expect(r.credit, `${y} ${r.position}`).toBe(1)
+        if (r.role === '관성') expect(r.credit, `${y} ${r.position}`).toBeLessThan(0.2)
+        // 비겁·인성이면 돕는 자리, 나머지는 아니다
+        expect(r.helps, `${y} ${r.position} ${r.role}`).toBe(
+          r.role === '비겁' || r.role === '인성',
+        )
+      }
+    }
+  })
+
+  it('지지는 속에 품은 지장간까지 날수만큼 나눠 센다', () => {
+    const s = judgeStrength(chartOf({}))
+    for (const r of s.rows.filter((x) => x.position.endsWith('지'))) {
+      expect(r.hidden.length, r.position).toBeGreaterThanOrEqual(2)
+      expect(r.hidden.reduce((a, h) => a + h.days, 0), r.position).toBe(30)
+      // 지장간을 날수로 가중평균한 값이 곧 credit 이다
+      const want = r.hidden.reduce((a, h) => a + CREDIT[h.role] * h.days, 0) / 30
+      expect(r.credit, r.position).toBeCloseTo(want, 2)
+    }
+  })
+
+  it('돕는 자리로 본 오행은 비겁이나 인성 쪽이다', () => {
+    // 지지는 지장간이 섞여 겉 글자와 어긋날 수 있으니 천간만 본다
+    const s = judgeStrength(chartOf({}))
+    for (const r of s.rows.filter((x) => x.position.endsWith('간'))) {
       expect(s.allyElements.includes(r.element), `${r.position} ${r.element}`).toBe(r.helps)
     }
   })

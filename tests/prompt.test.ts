@@ -57,8 +57,8 @@ describe('계산 결과가 빠짐없이 실린다', () => {
   })
 
   it('신강신약 점수와 자리별 배점 근거', () => {
-    expect(text).toContain('신강 (73점')
-    expect(text).toContain('월지 신(申) 금 비견 / 32점')
+    expect(text).toContain('신강 (71점')
+    expect(text).toContain('월지 신(申) 금 비견(비겁) / 배점 32 중 26점')
   })
 
   it('용신과 조후', () => {

@@ -155,9 +155,25 @@ describe('기준 사주: 대운·세운·월운', () => {
 })
 
 describe('기준 사주: 신강신약과 용신', () => {
-  it('73점 신강이다', () => {
-    expect(analysis.strength.score).toBe(73)
+  it('71점 신강이다', () => {
+    // 비교한 상용 만세력 앱도 70점 신강으로 본다
+    expect(analysis.strength.score).toBe(71)
     expect(analysis.strength.verdict).toBe('신강')
+  })
+
+  it('자리마다 배점 중 얼마를 가져갔는지가 맞는다', () => {
+    const got = Object.fromEntries(
+      analysis.strength.rows.map((r) => [r.position, [r.role, r.points, r.weight]]),
+    )
+    expect(got).toEqual({
+      연간: ['인성', 7.2, 8], // 무 토가 금을 생한다
+      연지: ['재성', 3.7, 11], // 인 목. 속의 무(인성)만 조금 보탠다
+      월간: ['비겁', 12, 12], // 경 금. 배점을 전부 가져간다
+      월지: ['비겁', 26, 32], // 신 금. 속의 임(식상)이 조금 깎는다
+      일지: ['식상', 4.8, 16], // 자 수. 속까지 전부 수라 덜 가져간다
+      시간: ['비겁', 10, 10],
+      시지: ['인성', 6.9, 11], // 진 토. 속의 을·계가 깎는다
+    })
   })
 
   it('득령했고 득지하지 못했다', () => {

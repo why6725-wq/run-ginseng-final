@@ -30,7 +30,7 @@ describe('후속 질문 프롬프트', () => {
 
   it('계산된 사주가 실린다', () => {
     expect(prompt).toContain('경자')
-    expect(prompt).toContain('신강 (73점')
+    expect(prompt).toContain('신강 (71점')
     expect(prompt).toContain('이로운 오행: 수, 목, 화')
   })
 

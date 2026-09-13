@@ -8,6 +8,7 @@
  * 어느 글자에 몇 점을 줬는지 근거를 전부 함께 돌려준다. 화면에도 그대로 보여준다.
  */
 
+import { getHeavenlyStemElement } from 'manseryeok'
 import type { EarthlyBranch, FiveElement, HeavenlyStem, TenGod } from 'manseryeok'
 import type { SajuChart } from './saju'
 import { josa, josaAfterParen } from './korean'
@@ -495,16 +496,80 @@ function normalizedWeights(positions: string[]): Record<string, number> {
   return out
 }
 
+/** 일간에서 본 오행의 역할. 십신 열 가지를 오행 단위 다섯으로 묶은 것이다. */
+export type DayRole = '비겁' | '인성' | '식상' | '재성' | '관성'
+
+export function elementRole(day: FiveElement, el: FiveElement): DayRole {
+  if (el === day) return '비겁'
+  if (GENERATED_BY[day] === el) return '인성'
+  if (GENERATES[day] === el) return '식상'
+  if (CONTROLS[day] === el) return '재성'
+  return '관성'
+}
+
+/**
+ * 역할마다 일간에게 보태는 정도(0~1). 자리 점수에 이 값을 곱한다.
+ *
+ * 예전에는 비겁과 인성이면 자리 점수를 통째로 주고 나머지는 0을 줬다.
+ * 그런데 일곱 자리가 다섯 역할에 고루 흩어지니, 점수를 받는 자리는 평균 다섯 중 둘뿐이라
+ * 점수가 40 근처에 깔렸다. 신약 기준이 40 미만이라 절반 넘는 사주가 신약으로 몰렸다.
+ *
+ * 실제 명리는 그렇게 딱 잘라 보지 않는다. 식상은 내 기운을 쓰는 것이지 빼앗기는 게 아니고,
+ * 재성은 내가 쥐는 대상이며, 관성이라야 나를 정면으로 누른다. 눌리는 정도가 저마다 다르다.
+ * 그래서 역할마다 다른 비율을 준다. 다섯 값의 평균이 0.5라 점수가 가운데로 모인다.
+ */
+const ROLE_CREDIT: Record<DayRole, number> = {
+  비겁: 1,
+  인성: 0.9,
+  식상: 0.3,
+  재성: 0.2,
+  관성: 0.1,
+}
+
+/** 지지 속 천간 하나가 차지하는 몫과 그 역할 */
+export interface HiddenPart {
+  stem: HeavenlyStem
+  element: FiveElement
+  role: DayRole
+  /** 한 달 30일 중 차지하는 날수 */
+  days: number
+}
+
+/**
+ * 지지 한 글자가 일간에게 보태는 정도.
+ *
+ * 지지는 겉으로 한 글자지만 속에 천간을 두셋 품고 있다(지장간).
+ * 겉 글자가 남이어도 속에 내 편이 앉아 있을 수 있고, 그 반대도 있다.
+ * 그래서 지장간이 차지하는 날수만큼 무게를 나눠 평균을 낸다.
+ */
+function branchCredit(day: FiveElement, branch: EarthlyBranch): { credit: number; parts: HiddenPart[] } {
+  const parts: HiddenPart[] = HIDDEN_STEMS[branch].map((h) => {
+    const element = getHeavenlyStemElement(h.stem)
+    return { stem: h.stem, element, role: elementRole(day, element), days: h.days }
+  })
+  const total = parts.reduce((s, p) => s + p.days, 0)
+  const credit = parts.reduce((s, p) => s + ROLE_CREDIT[p.role] * p.days, 0) / total
+  return { credit, parts }
+}
+
 export interface StrengthRow {
   position: string
   char: string
   hanja: string
   element: FiveElement
   tenGod: TenGod | '일간'
-  /** 일간을 돕는가 */
+  /** 일간에서 본 역할 */
+  role: DayRole
+  /** 이 자리가 일간에게 보태는 비율 0~1 */
+  credit: number
+  /** 실제로 더해진 점수 = weight × credit */
+  points: number
+  /** 절반 넘게 보태면 일간 편으로 본다 */
   helps: boolean
-  /** 왜 돕는지 / 왜 안 돕는지 */
+  /** 왜 그만큼 보태는지 */
   reason: string
+  /** 지지라면 지장간 내역. 천간이면 빈 배열 */
+  hidden: HiddenPart[]
   weight: number
 }
 
@@ -523,22 +588,51 @@ export interface Strength {
   summary: string
 }
 
+/** 역할마다 왜 그만큼 보태는지 한 줄로 풀어 쓴다 */
+function roleReason(day: FiveElement, el: FiveElement, role: DayRole): string {
+  switch (role) {
+    case '비겁':
+      return `일간과 같은 ${el}이라 힘을 그대로 보탭니다`
+    case '인성':
+      return `${josa(el, '이/가')} ${josa(day, '을/를')} 생(生)해 일간을 거의 그대로 돕습니다`
+    case '식상':
+      return `일간이 ${josa(el, '을/를')} 생하느라 기운을 내보냅니다. 빼앗기는 건 아니라 조금은 남습니다`
+    case '재성':
+      return `일간이 ${josa(el, '을/를')} 극해 쥐는 자리입니다. 다스리는 데 힘이 들어갑니다`
+    case '관성':
+      return `${josa(el, '이/가')} ${josa(day, '을/를')} 극해 일간을 정면으로 누릅니다`
+  }
+}
+
 /**
  * 신강신약을 매긴다.
  *
- * 일간을 도와주는 글자(비겁, 인성)의 자리 점수를 모두 더한 값이 점수다.
- * 61점 이상이면 신강, 40점 미만이면 신약, 사이는 중화로 본다.
+ * 자리마다 점수(weight)를 주고, 그 자리가 일간에게 얼마나 보태는지(credit, 0~1)를 곱해 더한다.
+ * 다섯 역할에 매긴 비율의 평균이 정확히 0.5라, 50점이 어느 쪽으로도 기울지 않은 한가운데다.
+ * 거기서 56점 이상이면 신강, 44점 이하면 신약, 45~55는 중화로 본다.
+ *
+ * credit 은 두 가지로 정해진다.
+ *  - 천간은 그 글자의 역할(비겁·인성·식상·재성·관성)에 매긴 비율을 그대로 쓴다.
+ *  - 지지는 속에 품은 천간(지장간)마다 역할을 따져 날수만큼 무게를 나눠 평균을 낸다.
  *
  * 이 기준은 유파마다 다르다. 그래서 점수만 내놓지 않고 rows 에 근거를 전부 담아
  * 화면과 AI 프롬프트에서 "어느 글자에 몇 점을 줬는지"를 그대로 보여준다.
  */
 export function judgeStrength(chart: SajuChart): Strength {
   const dayElement = chart.dayMaster.element
-  const sameElement = dayElement // 비겁
-  const supportElement = GENERATED_BY[dayElement] // 인성
-  const allyElements = [sameElement, supportElement]
+  const allyElements = [dayElement, GENERATED_BY[dayElement]] // 비겁 + 인성
 
-  const slots: { position: string; char: string; hanja: string; element: FiveElement; tenGod: TenGod | '일간' }[] = []
+  interface Slot {
+    position: string
+    char: string
+    hanja: string
+    element: FiveElement
+    tenGod: TenGod | '일간'
+    isBranch: boolean
+    branch?: EarthlyBranch
+  }
+
+  const slots: Slot[] = []
 
   for (const p of chart.pillars) {
     // 일간 자신은 기준점이라 점수에서 뺀다
@@ -549,6 +643,7 @@ export function judgeStrength(chart: SajuChart): Strength {
         hanja: p.stemHanja,
         element: p.stemElement,
         tenGod: p.stemTenGod,
+        isBranch: false,
       })
     }
     slots.push({
@@ -557,36 +652,55 @@ export function judgeStrength(chart: SajuChart): Strength {
       hanja: p.branchHanja,
       element: p.branchElement,
       tenGod: p.branchTenGod,
+      isBranch: true,
+      branch: p.branch,
     })
   }
 
   const weights = normalizedWeights(slots.map((s) => s.position))
 
   const rows: StrengthRow[] = slots.map((s) => {
-    const helps = allyElements.includes(s.element)
-    const reason = helps
-      ? s.element === sameElement
-        ? `일간과 같은 ${s.element}이라 힘을 보탭니다`
-        : `${josa(s.element, '이/가')} ${josa(dayElement, '을/를')} 생(生)해 일간을 돕습니다`
-      : s.element === GENERATES[dayElement]
-        ? `일간이 ${josa(s.element, '을/를')} 생하느라 힘을 뺍니다`
-        : s.element === CONTROLS[dayElement]
-          ? `일간이 ${josa(s.element, '을/를')} 극하느라 힘을 씁니다`
-          : `${josa(s.element, '이/가')} ${josa(dayElement, '을/를')} 극해 일간을 누릅니다`
+    const role = elementRole(dayElement, s.element)
+    const weight = Math.round(weights[s.position] * 10) / 10
+
+    let credit: number
+    let hidden: HiddenPart[]
+    let reason: string
+
+    if (s.isBranch) {
+      const c = branchCredit(dayElement, s.branch!)
+      credit = c.credit
+      hidden = c.parts
+      const allies = hidden.filter((h) => h.role === '비겁' || h.role === '인성')
+      const mix = hidden.map((h) => `${h.stem}(${h.role})`).join('·')
+      reason =
+        allies.length > 0 && allies.length < hidden.length
+          ? `${roleReason(dayElement, s.element, role)}. 다만 속에 ${mix}를 품어 절반은 다르게 셉니다`
+          : `${roleReason(dayElement, s.element, role)}. 속에 품은 ${mix}도 같은 결입니다`
+    } else {
+      credit = ROLE_CREDIT[role]
+      hidden = []
+      reason = roleReason(dayElement, s.element, role)
+    }
+
     return {
       position: s.position,
       char: s.char,
       hanja: s.hanja,
       element: s.element,
       tenGod: s.tenGod,
-      helps,
+      role,
+      credit: Math.round(credit * 100) / 100,
+      points: Math.round(weight * credit * 10) / 10,
+      helps: credit >= 0.5,
       reason,
-      weight: Math.round(weights[s.position] * 10) / 10,
+      hidden,
+      weight,
     }
   })
 
-  const score = Math.round(rows.filter((r) => r.helps).reduce((sum, r) => sum + r.weight, 0))
-  const verdict: Strength['verdict'] = score >= 61 ? '신강' : score < 40 ? '신약' : '중화'
+  const score = Math.round(rows.reduce((sum, r) => sum + r.points, 0))
+  const verdict: Strength['verdict'] = score >= 56 ? '신강' : score <= 44 ? '신약' : '중화'
 
   const monthRow = rows.find((r) => r.position === '월지')
   const dayGroundRow = rows.find((r) => r.position === '일지')
@@ -597,7 +711,7 @@ export function judgeStrength(chart: SajuChart): Strength {
     `${chart.dayMaster.stem}(${chart.dayMaster.hanja}) 일간이 ` +
     `${hasSeason ? '태어난 달의 기운을 얻었고' : '태어난 달의 기운을 얻지 못했고'}, ` +
     `${hasGround ? '앉은 자리도 일간 편입니다' : '앉은 자리는 일간 편이 아닙니다'}. ` +
-    `일간을 돕는 자리의 점수를 모두 더하면 ${score}점으로 ${verdict}으로 봅니다.`
+    `자리마다 일간을 얼마나 보태는지 따져 더하면 ${score}점으로 ${verdict}으로 봅니다.`
 
   return { score, verdict, rows, hasSeason, hasGround, allyElements, summary }
 }

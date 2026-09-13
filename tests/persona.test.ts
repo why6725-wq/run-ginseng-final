@@ -138,12 +138,22 @@ describe('오늘의 운세', () => {
   })
 
   it('조사가 어긋난 문장이 없다', () => {
-    for (let i = 0; i < 120; i += 1) {
+    // 받침이 없는데 '이', 받침이 있는데 '가' 를 붙인 자리를 찾는다.
+    // 제목 줄에도 천간·지지 글자가 그대로 들어가므로 함께 본다.
+    const bad = [
+      '토이 ', '수을 ', '화이 ', '화을 ', '수이 ', '목가 ', '금가 ',
+      // 천간 — 받침 없는 글자에 '이/과', 받침 있는 글자에 '가/와'
+      '계이 ', '계과 ', '기이 ', '기과 ', '무이 ', '무과 ', '병이 ', '병과 ',
+      '정이 ', '정와 ', '신이 ', '신와 ', '경이 ', '경와 ', '임이 ', '임와 ',
+      // 지지 — 받침 없는 글자
+      '사이 ', '오이 ', '자이 ', '미이 ', '유이 ', '해이 ', '묘이 ', '축가 ', '진가 ', '술가 ',
+    ]
+    for (let i = 0; i < 400; i += 1) {
       const d = new Date(NOW.getTime() + i * 24 * 60 * 60 * 1000)
       const f = buildTodayFortune(chart, analysis, d)
-      const all = f.reasons.map((r) => r.note).join(' ')
-      for (const bad of ['토이 ', '수을 ', '화이 ', '화을 ', '수이 ', '목가 ', '금가 ']) {
-        expect(all.includes(bad), `${f.date} 에 "${bad.trim()}"`).toBe(false)
+      const all = f.reasons.map((r) => `${r.label} ${r.note}`).join(' ')
+      for (const b of bad) {
+        expect(all.includes(b), `${f.date} 에 "${b.trim()}"`).toBe(false)
       }
     }
   })

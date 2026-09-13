@@ -57,18 +57,18 @@ export function StrengthPanel({
         </div>
 
         <div className="relative h-6 overflow-hidden rounded-full bg-surface-2">
-          <div className="absolute inset-y-0 left-0 w-[40%] border-r border-background/40 bg-water/25" />
-          <div className="absolute inset-y-0 left-[40%] w-[21%] border-r border-background/40 bg-earth/25" />
-          <div className="absolute inset-y-0 left-[61%] right-0 bg-fire/25" />
+          <div className="absolute inset-y-0 left-0 w-[45%] border-r border-background/40 bg-water/25" />
+          <div className="absolute inset-y-0 left-[45%] w-[11%] border-r border-background/40 bg-earth/25" />
+          <div className="absolute inset-y-0 left-[56%] right-0 bg-fire/25" />
           <div
             className="absolute top-0 h-6 w-[3px] rounded bg-foreground transition-[left] duration-700"
             style={{ left: `calc(${pct}% - 1.5px)` }}
           />
         </div>
         <div className="mt-1 flex justify-between text-[11px] text-muted">
-          <span>신약 0~39</span>
-          <span>중화 40~60</span>
-          <span>신강 61~100</span>
+          <span>신약 0~44</span>
+          <span>중화 45~55</span>
+          <span>신강 56~100</span>
         </div>
 
         <p className="mt-3 text-sm leading-relaxed text-foreground/85">{strength.summary}</p>
@@ -109,6 +109,7 @@ export function StrengthPanel({
                   <tr className="border-b border-border text-muted">
                     <th className="py-1.5 pr-2 font-medium">자리</th>
                     <th className="py-1.5 pr-2 font-medium">글자</th>
+                    <th className="py-1.5 pr-2 font-medium">역할</th>
                     <th className="py-1.5 pr-2 text-right font-medium">점수</th>
                     <th className="py-1.5 pl-2 font-medium">작용</th>
                   </tr>
@@ -125,12 +126,14 @@ export function StrengthPanel({
                           {r.char}·{r.element}
                         </span>
                       </td>
+                      <td className="py-1.5 pr-2 whitespace-nowrap text-muted">{r.role}</td>
                       <td
                         className={`py-1.5 pr-2 text-right tabular-nums ${
                           r.helps ? 'font-medium text-accent' : 'text-muted'
                         }`}
                       >
-                        {r.helps ? `+${r.weight}` : `(${r.weight})`}
+                        {r.points}
+                        <span className="text-muted/70"> / {r.weight}</span>
                       </td>
                       <td className="py-1.5 pl-2 text-muted">{r.reason}</td>
                     </tr>
@@ -139,9 +142,12 @@ export function StrengthPanel({
               </table>
             </div>
             <p className="mt-3 text-[11px] leading-relaxed text-muted">
-              월지에 가장 큰 점수를 줍니다. 태어난 달이 일간의 힘을 가장 크게 좌우하기
-              때문입니다. 괄호 친 점수는 일간의 힘을 덜어내는 자리라 합계에서 뺀 것입니다.
-              이 배점은 <Term name="억부">억부</Term> 기준의 한 방식이고, 유파마다 다릅니다.
+              자리마다 배점(오른쪽 숫자)이 있고, 그 자리가 일간을 얼마나 보태느냐에 따라 그중
+              얼마를 가져가는지(왼쪽 숫자)가 정해집니다. 월지에 가장 큰 배점을 줍니다. 태어난
+              달이 일간의 힘을 가장 크게 좌우하기 때문입니다. 지지는 겉 글자만 보지 않고 속에
+              품은 <Term name="지장간">지장간</Term>까지 날수만큼 나눠 셉니다. 다섯 역할의
+              평균이 정확히 절반이라 50점이 어느 쪽으로도 기울지 않은 한가운데입니다. 이 배점은{' '}
+              <Term name="억부">억부</Term> 기준의 한 방식이고, 유파마다 다릅니다.
             </p>
           </div>
         )}

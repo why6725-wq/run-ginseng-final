@@ -24,8 +24,10 @@ const CACHE_DIR = path.join(process.cwd(), '.cache', 'interpretations')
  * v2: 신강신약·용신·지장간·합충을 해석에 반영하기 시작함
  * v3: 12운성·12신살·신살·연주 공망·월운을 추가함
  * v4: 카드형 짧은 풀이와 오늘의 운세를 추가함
+ * v5: 신강신약을 지장간까지 따지는 부분 점수로 바꾸고 판정 기준을 다시 잡음.
+ *     오늘의 운세에 12운성·천간합충·형파해·공망을 더해 점수 폭을 넓힘
  */
-const PROMPT_VERSION = 4
+const PROMPT_VERSION = 5
 
 /** 입력이 같으면 같은 키가 나오도록 한다. 해석이 달라지는 요소만 넣는다. */
 export function cacheKey(input: SajuInput, year: number): string {

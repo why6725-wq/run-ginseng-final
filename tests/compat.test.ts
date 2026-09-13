@@ -170,7 +170,7 @@ describe('궁합 프롬프트', () => {
   })
 
   it('두 사람의 신강신약과 용신이 실린다', () => {
-    expect(prompt).toContain('신강신약: 신강 (73점)')
+    expect(prompt).toContain('신강신약: 신강 (71점)')
     expect(prompt).toContain('용신(이로운 오행): 수, 목, 화')
   })
 
