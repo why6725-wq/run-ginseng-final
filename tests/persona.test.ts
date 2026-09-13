@@ -213,9 +213,32 @@ describe('카드 지시문', () => {
     ])
   })
 
-  it('짧게 쓰라고 거듭 못박는다', () => {
-    expect(BRIEF_SYSTEM_PROMPT).toContain('세 문장 안쪽')
-    expect(BRIEF_SYSTEM_PROMPT).toContain('절대 길게 쓰지 마십시오')
+  it('표를 해설하지 말라고 못박는다', () => {
+    // 처음 지시문은 이 말이 없어서, 카드마다 "일지 상관이라…" 하고
+    // 명리 용어로 시작하는 표 해설이 나왔다. 남 얘기처럼 읽히는 가장 큰 원인이었다.
+    expect(BRIEF_SYSTEM_PROMPT).toContain('표를 해설하지 마십시오')
+    expect(BRIEF_SYSTEM_PROMPT).toContain('명리 근거는 맨 뒤에')
+  })
+
+  it('나쁜 예와 좋은 예를 함께 보여준다', () => {
+    // 말로만 "쉽게 쓰라"고 하면 안 먹힌다. 견본을 붙여야 바뀐다.
+    expect(BRIEF_SYSTEM_PROMPT).toContain('나쁜 예')
+    expect(BRIEF_SYSTEM_PROMPT).toContain('좋은 예')
+  })
+
+  it('성격 딱지 대신 구체적인 장면을 요구한다', () => {
+    expect(BRIEF_SYSTEM_PROMPT).toContain('적중감')
+    expect(BRIEF_SYSTEM_PROMPT).toContain('행동으로 쓰십시오')
+  })
+
+  it('명리 용어를 한 카드에 한 번으로 제한한다', () => {
+    expect(BRIEF_SYSTEM_PROMPT).toContain('한 카드에 한 번까지만')
+  })
+
+  it('지어내는 것은 여전히 막는다', () => {
+    // 적중감을 노리다 없는 말을 지어내면 그게 더 나쁘다
+    expect(BRIEF_SYSTEM_PROMPT).toContain('아무 말이나 지어내지 마십시오')
+    expect(BRIEF_SYSTEM_PROMPT).toContain('뒤집지 마십시오')
   })
 
   it('키워드 줄 형식을 정해둔다', () => {
