@@ -28,8 +28,12 @@ const CACHE_DIR = path.join(process.cwd(), '.cache', 'interpretations')
  *     오늘의 운세에 12운성·천간합충·형파해·공망을 더해 점수 폭을 넓힘
  * v6: 카드 지시문을 다시 씀. 표를 해설하지 말고 사람을 쓰도록,
  *     명리 근거는 맨 뒤로 돌리고 카드마다 구체적인 장면을 넣도록 바꿈
+ * v7: 카드 본문에 '본문:' 말머리가 붙어 화면에 그대로 찍히던 것을 막음
+ * v8: 지시문의 예시 문장을 그대로 베껴 오던 것을 막음
+ * v9: 경고를 예시 바로 밑으로 옮김. 멀리 두니 안 먹혔다
+ * v10: 첫 문장을 오행 개수나 글자 이름으로 시작하지 못하게 못박음
  */
-const PROMPT_VERSION = 6
+const PROMPT_VERSION = 10
 
 /** 입력이 같으면 같은 키가 나오도록 한다. 해석이 달라지는 요소만 넣는다. */
 export function cacheKey(input: SajuInput, year: number): string {

@@ -196,8 +196,24 @@ describe('카드 파싱', () => {
   })
 
   it('해시 기호가 붙은 키워드도 벗겨낸다', () => {
-    const cards = parseBriefCards('## 돈\n키워드: #저축, #투자\n본문')
+    const cards = parseBriefCards('## 돈\n키워드: #저축, #투자\n쌓아두는 쪽입니다')
     expect(cards[0].keywords).toEqual(['저축', '투자'])
+  })
+
+  it("'본문:' 같은 말머리를 벗겨낸다", () => {
+    // 지시문으로 막아 뒀지만 실제로 붙여 온 적이 있다. 그대로 두면 카드에 찍힌다.
+    const cards = parseBriefCards('## 돈\n키워드: 저축\n본문: 쌓아두는 쪽입니다.')
+    expect(cards[0].body).toBe('쌓아두는 쪽입니다.')
+    expect(parseBriefCards('## 돈\n내용：쌓아둡니다').at(0)?.body).toBe('쌓아둡니다')
+  })
+
+  it('본문 안에 있는 글자는 건드리지 않는다', () => {
+    const cards = parseBriefCards('## 돈\n이 본문: 이라는 말은 문장 가운데 있습니다')
+    expect(cards[0].body).toBe('이 본문: 이라는 말은 문장 가운데 있습니다')
+  })
+
+  it('말머리를 붙이지 말라고 지시문에 못박았다', () => {
+    expect(BRIEF_SYSTEM_PROMPT).toContain('말머리를 붙이지 마십시오')
   })
 })
 
